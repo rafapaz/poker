@@ -2,57 +2,43 @@
 <html>
     <head>
         <title>WebSocket demo</title>
-        <style type="text/css">
-            body {
-                font-family: "Courier New", sans-serif;
-                text-align: center;
-            }
-            .buttons {
-                font-size: 4em;
-                display: flex;
-                justify-content: center;
-            }
-            .button, .value {
-                line-height: 1;
-                padding: 2rem;
-                margin: 2rem;
-                border: medium solid;
-                min-height: 1em;
-                min-width: 1em;
-            }
-            .button {
-                cursor: pointer;
-                user-select: none;
-            }
-            .minus {
-                color: red;
-            }
-            .plus {
-                color: green;
-            }
-            .value {
-                min-width: 2em;
-            }
-            .state {
-                font-size: 2em;
-            }
-        </style>
+        <link rel="stylesheet" href="w3.css">
+        <script type="text/javascript" src="poker_client.js"></script>
     </head>
     <body>
-        <div class="buttons">
-            <div class="minus button">-</div>
-            <div class="value">?</div>
-            <div class="plus button">+</div>
+        
+        <div class="w3-panel w3-center" style="width: 600px; height: 450px;">
+            <div class="w3-display-container w3-green w3-round-xxlarge" style="width: 600px; height: 350px;" >
+                <div class="w3-display-topleft"><div id="slot_3"></div></div>
+                <div class="w3-display-topright"><div id="slot_5"></div></div>
+                <div class="w3-display-bottomleft"><div id="slot_1"></div></div>
+                <div class="w3-display-bottomright"><div id="slot_7"></div></div>
+                <div class="w3-display-left"><div id="slot_2"></div></div>
+                <div class="w3-display-right"><div id="slot_6"></div></div>
+                <div class="w3-display-middle"><div id="table"></div></div>
+                <div class="w3-display-topmiddle"><div id="slot_4"></div></div>
+                <div class="w3-display-bottommiddle"><div id="me"></div></div>
+            </div>
+            <div class="w3-panel w3-cell-row">
+                <div class="w3-container w3-cell w3-button w3-margin w3-blue w3-padding">Fold</div>
+                <div class="w3-cell w3-button w3-margin w3-blue w3-padding">Check</div>
+                <div class="w3-cell w3-button w3-margin w3-blue w3-padding">Call</div>
+                <div class="w3-cell w3-button w3-margin w3-blue w3-padding">Raise</div>
+            </div>
+            <div class="w3-panel w3-cell-row">
+                <div class="w3-cell">
+                    <input type="text" name="name" class="w3-input" placeholder="Type your name" />
+                </div>
+                <div class="w3-cell">
+                    <div class="w3-button w3-orange" id="connect_button" onclick="connect();">Connect</div>
+                </div>
+            </div>
         </div>
-        <div class="state">
-            <span class="users">?</span> online
-        </div>
+
         <script>
-            var minus = document.querySelector('.minus'),
-                plus = document.querySelector('.plus'),
-                value = document.querySelector('.value'),
-                users = document.querySelector('.users'),
-                websocket = new WebSocket("ws://127.0.0.1:6789/");
+            /*
+            var websocket = new WebSocket("ws://127.0.0.1:6789/");
+
             minus.onclick = function (event) {
                 websocket.send(JSON.stringify({action: 'minus'}));
             }
@@ -75,6 +61,7 @@
                             "unsupported event", data);
                 }
             };
+            */
         </script>
     </body>
 </html>

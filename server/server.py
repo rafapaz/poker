@@ -45,6 +45,7 @@ async def unregister(websocket):
 async def PokerServer(websocket, path):
     # register(websocket) sends user_event() to websocket
     await register(websocket)
+    """
     try:
         await websocket.send(state_event())
         async for message in websocket:
@@ -59,6 +60,7 @@ async def PokerServer(websocket, path):
                 logging.error("unsupported event: {}", data)
     finally:
         await unregister(websocket)
+    """
 
 
 start_server = websockets.serve(PokerServer, "localhost", 6789)
