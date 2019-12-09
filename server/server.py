@@ -2,65 +2,68 @@
 
 import asyncio
 import json
-import logging
 import websockets
-
-logging.basicConfig()
-
-STATE = {"value": 0}
+from user import User
 
 USERS = set()
 
-
-def state_event():
-    return json.dumps({"type": "state", **STATE})
-
-
-def users_event():
-    return json.dumps({"type": "users", "count": len(USERS)})
-
-
-async def notify_state():
-    if USERS:  # asyncio.wait doesn't accept an empty list
-        message = state_event()
-        await asyncio.wait([user.send(message) for user in USERS])
-
-
-async def notify_users():
-    if USERS:  # asyncio.wait doesn't accept an empty list
-        message = users_event()
-        await asyncio.wait([user.send(message) for user in USERS])
+async def notify_users(message):
+    if USERS:  # asyncio.wait doesn't accept an empty list        
+        await asyncio.wait([user.websocket.send(message) for user in USERS])
 
 
 async def register(websocket):
-    USERS.add(websocket)
-    await notify_users()
+    msg = await websocket.recv()
+    data = json.loads(msg)
+    user = User(data['name'], websocket)
+    USERS.add(user)
+
+    msg = '{} connected!'.format(user.player.name)
+    print(msg)
+    message = json.dumps({"type": "msg", "value": msg})
+    await notify_users(message)
+    message = json.dumps({"type": "users", "value": [user.player.serialize() for user in USERS]})    
+    await notify_users(message)
 
 
-async def unregister(websocket):
-    USERS.remove(websocket)
-    await notify_users()
+async def unregister(user):
+    USERS.remove(user)    
+    
+    msg = '{} disconnect!'.format(user.player.name)
+    print(msg)
+    message = json.dumps({"type": "msg", "value": msg})
+    await notify_users(message)
+    message = json.dumps({"type": "users", "value": [user.player.serialize() for user in USERS]})    
+    await notify_users(message)
 
+def get_user_by_ws(websocket):
+    for u in USERS:
+        if u.websocket == websocket:
+            return u
+    return None
+
+def get_user_by_name(name):
+    for u in USERS:
+        if u.name == name:
+            return u
+    return None
 
 async def PokerServer(websocket, path):
     # register(websocket) sends user_event() to websocket
     await register(websocket)
-    """
+    user = get_user_by_ws(websocket)
+    
     try:
-        await websocket.send(state_event())
-        async for message in websocket:
+        #await websocket.send(state_event())
+        async for message in websocket:            
             data = json.loads(message)
-            if data["action"] == "minus":
-                STATE["value"] -= 1
-                await notify_state()
-            elif data["action"] == "plus":
-                STATE["value"] += 1
-                await notify_state()
+            if data["action"] == "disconnect":
+                await unregister(user)                
             else:
-                logging.error("unsupported event: {}", data)
-    finally:
-        await unregister(websocket)
-    """
+                print("unsupported event: {}", data)
+    except websockets.exceptions.ConnectionClosedError:
+        print('Connection closed!')    
+    
 
 
 start_server = websockets.serve(PokerServer, "localhost", 6789)

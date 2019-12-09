@@ -1,5 +1,37 @@
 
 
+window.onload = function() {
+
+    button_connect = '<div class="w3-button w3-orange" id="connect_button" onclick="connect();">Connect</div>';
+    button_disconnect = '<div class="w3-button w3-red" id="connect_button" onclick="disconnect();">Disconnect</div>';
+    document.getElementById('connect').innerHTML = button_connect;
+
+    message = document.getElementById('message');
+
+};
+
+function refreshUsers(data)
+{
+    for (var i = 0; i < 7; i++)
+    {
+        slot = document.getElementById('slot_'+i)
+        slot.innerHTML = '';
+    }
+
+    for (i in data)
+    {
+        if (data[i]['name'] == document.getElementById('name').value)
+        {
+            me = document.getElementById('me');
+            me.innerHTML = '<div class="w3-panel w3-blue w3-circle">' + data[i]['name'] + '<br>' + data[i]['money'] + '</div>';
+            continue;
+        }
+        
+        slot = document.getElementById('slot_'+i)
+        slot.innerHTML = '<div class="w3-panel w3-grey w3-circle">' + data[i]['name'] + '<br>' + data[i]['money'] + '</div>';
+    }
+}
+
 var websocket;
 
 function connect()
@@ -7,8 +39,10 @@ function connect()
     websocket = new WebSocket("ws://127.0.0.1:6789/");
 
     websocket.onopen = function ()
-    {
-        console.log('Sucesso!');
+    {        
+        console.log('Connected!');        
+        websocket.send(JSON.stringify({name: document.getElementById('name').value}));
+        document.getElementById('connect').innerHTML = button_disconnect;
     };
 
     websocket.onerror = function (error)
@@ -16,4 +50,26 @@ function connect()
         console.log('WebSocket Error ' + error);
     };
 
+    websocket.onmessage = function(event)
+    {
+        data = JSON.parse(event.data);
+        switch (data.type) {
+            case 'msg':
+                message.innerHTML = data.value;
+                break;
+            case 'users':
+                refreshUsers(data.value);
+                break;
+            default:
+                console.error("unsupported event", data);
+        }
+    };
+
+}
+
+function disconnect()
+{
+    websocket.send(JSON.stringify({action: 'disconnect'}));
+    websocket.close();
+    document.getElementById('connect').innerHTML = button_connect;
 }
