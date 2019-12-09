@@ -4,13 +4,20 @@ from deck import Deck
 from player import Player
 
 class Poker:
-    def __init__(self, players):
+    def __init__(self, players=None):
         self.deck = Deck()
         self.table_cards = []
-        self.players = players
+        self.table_money = 0
+        self.players = players if players is not None else set()
         self.score = ['High Card', 'Pair', 'Two pairs', 'Three of a kind', 'Straight', 'Flush', 
                         'Full House', 'Four of a Kind', 'Straight Flush', 'Royal Flush'] # 0-9
     
+    def register_player(self, player):
+        self.players.add(player)
+    
+    def unregister_player(self, player):
+        self.players.remove(player)
+
     def reveal_card(self):
         self.table_cards.append(self.deck.give())
     
@@ -18,6 +25,9 @@ class Poker:
         for p in self.players:
             p.receive(self.deck.give())
             p.receive(self.deck.give())
+        
+    def get_money(self, value):
+        self.table_money += value
 
     def winner(self):
         best = None
@@ -32,7 +42,9 @@ class Poker:
                 score = total_score
                 cod_score = cs
                 best = p
-                
+
+        best.money += self.table_money
+        self.table_money = 0
         return best, self.score[cod_score]
 
     def get_score(self, player):

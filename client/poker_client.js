@@ -1,4 +1,5 @@
 
+var websocket;
 
 window.onload = function() {
 
@@ -32,7 +33,16 @@ function refreshUsers(data)
     }
 }
 
-var websocket;
+function showCards(data)
+{
+    me = document.getElementById('me');
+    var cards = '';
+    for (i in data)
+    {
+        cards += data[i] + ' ';
+    }
+    me.innerHTML = cards + me.innerHTML;
+}
 
 function connect()
 {
@@ -43,6 +53,8 @@ function connect()
         console.log('Connected!');        
         websocket.send(JSON.stringify({name: document.getElementById('name').value}));
         document.getElementById('connect').innerHTML = button_disconnect;
+
+        websocket.send(JSON.stringify({action: 'idle'}));
     };
 
     websocket.onerror = function (error)
@@ -59,6 +71,9 @@ function connect()
                 break;
             case 'users':
                 refreshUsers(data.value);
+                break;
+            case 'cards':
+                showCards(data.value);
                 break;
             default:
                 console.error("unsupported event", data);
