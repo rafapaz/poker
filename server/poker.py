@@ -4,14 +4,19 @@ from deck import Deck
 from player import Player
 
 class Poker:
-    def __init__(self, players=None):
+    def __init__(self, players=None):        
+        self.players = players if players is not None else set()
+        self.fold = set()
+        self.score = ['High Card', 'Pair', 'Two pairs', 'Three of a kind', 'Straight', 'Flush', 
+                        'Full House', 'Four of a Kind', 'Straight Flush', 'Royal Flush'] # 0-9
+            
+    def start_game(self):
         self.deck = Deck()
         self.table_cards = []
         self.table_money = 0
-        self.players = players if players is not None else set()
-        self.score = ['High Card', 'Pair', 'Two pairs', 'Three of a kind', 'Straight', 'Flush', 
-                        'Full House', 'Four of a Kind', 'Straight Flush', 'Royal Flush'] # 0-9
-    
+        self.players = self.players and self.fold
+        self.fold = set()
+
     def register_player(self, player):
         self.players.add(player)
     
@@ -23,11 +28,16 @@ class Poker:
     
     def deliver(self):
         for p in self.players:
+            p.cards = []
             p.receive(self.deck.give())
             p.receive(self.deck.give())
         
     def get_money(self, value):
         self.table_money += value
+
+    def fold_player(self, player):
+        self.fold.add(player)
+        self.players.remove(player)
 
     def winner(self):
         best = None
