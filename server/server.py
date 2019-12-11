@@ -8,8 +8,9 @@ from poker import Poker
 from user import User
 
 USERS = set()
-poker = None
+poker = Poker()
 IN_GAME = False
+
 
 async def notify_users(message):
     if USERS:  # asyncio.wait doesn't accept an empty list        
@@ -52,22 +53,62 @@ def get_user_by_ws(websocket):
 
 def get_user_by_name(name):
     for u in USERS:
-        if u.name == name:
+        if u.player.name == name:
             return u
     return None
 
 
-async def start_game():
+async def start_game(user):    
     global IN_GAME
-    global poker
-    if not IN_GAME and len(USERS) > 1:
-        IN_GAME = True
-        players = {user.player for user in USERS}
-        poker = Poker(players)
-        poker.deliver()
-        for user in USERS:
-            message = json.dumps({"type": "cards", "value": [str(c) for c in user.player.cards]})
-            await user.websocket.send(message)
+    
+    if IN_GAME or len(USERS) <= 1:        
+        message = json.dumps({"type": "wait_game"})
+        await user.websocket.send(message)
+        return
+    
+    print('Game started')
+    IN_GAME = True
+    for u in USERS:        
+        poker.register_player(u.player)
+    poker.start_game()
+    poker.deliver()
+
+    print('Players: ' + str(poker.players))
+    for p in poker.players:
+        u = get_user_by_name(p.name)
+        print('Sending cards to ' + u.player.name)
+        message = json.dumps({"type": "cards", "value": [str(c) for c in u.player.cards]})
+        await u.websocket.send(message)
+        if p.name == poker.get_dealer().name:
+            message = json.dumps({"type": "play"})
+        else:
+            message = json.dumps({"type": "wait_play"})
+        await u.websocket.send(message)
+
+
+async def reveal_card():
+    if len(poker.table_cards) == 0:
+        poker.reveal_card()
+        poker.reveal_card()
+        poker.reveal_card()
+    elif len(poker.table_cards) < 5:
+        poker.reveal_card()
+    
+    message = json.dumps({"type": "table_cards", "value": [str(c) for c in poker.table_cards]})    
+    await notify_users(message)
+
+
+async def check(user):
+    message = json.dumps({"type": "wait_play"})
+    await user.websocket.send(message)
+    print('CHECK : ' + user.player.name)
+     
+    if poker.close_cycle():
+        await reveal_card()        
+
+    next_user = get_user_by_name(poker.next_player().name)
+    message = json.dumps({"type": "play"})
+    await next_user.websocket.send(message)
 
 
 async def PokerServer(websocket, path):
@@ -76,12 +117,14 @@ async def PokerServer(websocket, path):
     user = get_user_by_ws(websocket)
     
     try:        
-        async for message in websocket:            
+        async for message in websocket:
             data = json.loads(message)
             if data["action"] == "disconnect":
                 await unregister(user)
-            if data["action"] == "idle":
-                await start_game()                
+            elif data["action"] == "idle":
+                await start_game(user)
+            elif data["action"] == "check":
+                await check(user)
             else:
                 print("unsupported event: {}", data)
     except websockets.exceptions.ConnectionClosedError:

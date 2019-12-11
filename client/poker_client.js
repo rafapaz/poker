@@ -34,14 +34,42 @@ function refreshUsers(data)
 }
 
 function showCards(data)
-{
+{    
     me = document.getElementById('me');
     var cards = '';
     for (i in data)
     {
         cards += data[i] + ' ';
     }
-    me.innerHTML = cards + me.innerHTML;
+    
+    newcontent = cards + me.innerHTML;
+    me.innerHTML = newcontent;
+    console.log(newcontent);
+}
+
+function showTableCards(data)
+{
+    table = document.getElementById('table');
+    var cards = '';
+    for (i in data)
+    {
+        cards += data[i] + ' ';
+    }
+    table.innerHTML = cards;
+}
+
+function toogleShowButtons(show)
+{
+    buttons = document.getElementById('buttons');
+    if (show)
+        buttons.style["pointer-events"] = "auto";
+    else
+        buttons.style["pointer-events"] = "none";        
+}
+
+function check()
+{
+    websocket.send(JSON.stringify({action: 'check'}));
 }
 
 function connect()
@@ -72,8 +100,20 @@ function connect()
             case 'users':
                 refreshUsers(data.value);
                 break;
-            case 'cards':
+            case 'cards':                
                 showCards(data.value);
+                break;
+            case 'wait_game':
+                websocket.send(JSON.stringify({action: 'idle'}));
+                break;
+            case 'wait_play':
+                toogleShowButtons(false);
+                break;
+            case 'play':
+                toogleShowButtons(true);
+                break;
+            case 'table_cards':
+                showTableCards(data.value);
                 break;
             default:
                 console.error("unsupported event", data);

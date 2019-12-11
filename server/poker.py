@@ -7,6 +7,9 @@ class Poker:
     def __init__(self, players=None):        
         self.players = players if players is not None else set()
         self.fold = set()
+        self.dealer_index = -1
+        self.next_index = 0
+        self.first_index = 0
         self.score = ['High Card', 'Pair', 'Two pairs', 'Three of a kind', 'Straight', 'Flush', 
                         'Full House', 'Four of a Kind', 'Straight Flush', 'Royal Flush'] # 0-9
             
@@ -14,8 +17,11 @@ class Poker:
         self.deck = Deck()
         self.table_cards = []
         self.table_money = 0
-        self.players = self.players and self.fold
+        self.players = self.players | self.fold
         self.fold = set()
+        self.dealer_index = ((self.dealer_index + 1) % len(self.players)) if len(self.players) > 0 else 0
+        self.next_index = ((self.dealer_index + 1) % len(self.players)) if len(self.players) > 0 else 0
+        self.first_index = self.dealer_index
 
     def register_player(self, player):
         self.players.add(player)
@@ -26,6 +32,16 @@ class Poker:
     def reveal_card(self):
         self.table_cards.append(self.deck.give())
     
+    def get_dealer(self):
+        list_player = list(self.players)
+        return list_player[self.dealer_index]
+    
+    def next_player(self):
+        list_player = list(self.players)
+        ret = list_player[self.next_index]
+        self.next_index = ((self.next_index + 1) % len(self.players)) if len(self.players) > 0 else 0
+        return ret
+
     def deliver(self):
         for p in self.players:
             p.cards = []
@@ -38,6 +54,9 @@ class Poker:
     def fold_player(self, player):
         self.fold.add(player)
         self.players.remove(player)
+
+    def close_cycle(self):
+        return True if self.next_index == self.first_index else False
 
     def winner(self):
         best = None

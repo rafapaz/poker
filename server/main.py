@@ -29,12 +29,12 @@ if __name__ == "__main__":
         #bet_loop(poker)
         for i, p in enumerate(poker.players):
             if i == 0:
-                poker.get_money(p.give_money(50))
+                poker.get_money(p.bet(50))
             elif i == 1:
-                poker.get_money(p.give_money(100))
+                poker.get_money(p.bet(100))
 
             
-        print([str(p) for p in poker.players])   
+        print([str(p) for p in poker.players])
         poker.fold_player(p2)    
         poker.reveal_card()
         poker.reveal_card()
