@@ -4,7 +4,8 @@ from deck import Deck
 from player import Player
 
 class Poker:
-    def __init__(self, players=None):        
+    def __init__(self, players=None):  
+        self.deck = Deck()      
         self.players = players if players is not None else set()
         self.fold = set()
         self.dealer_index = -1
@@ -27,7 +28,8 @@ class Poker:
         self.players.add(player)
     
     def unregister_player(self, player):
-        self.players.remove(player)
+        if player in self.players:
+            self.players.remove(player)
 
     def reveal_card(self):
         self.table_cards.append(self.deck.give())
@@ -74,29 +76,29 @@ class Poker:
 
         best.money += self.table_money
         self.table_money = 0
-        return best, self.score[cod_score]
+        return best, self.score[int(cod_score/100)]
 
     def get_score(self, player):
         total_cards = self.table_cards + player.cards
                 
         if self.is_royalflush(total_cards):
-            return 9
+            return 900
         if self.is_straightflush(total_cards):
-            return 8
+            return 800
         if self.is_fourofakind(total_cards):
-            return 7
+            return 700
         if self.is_fullhouse(total_cards):
-            return 6
+            return 600
         if self.is_flush(total_cards):
-            return 5
+            return 500
         if self.is_straight(total_cards):
-            return 4
+            return 400
         if self.is_threeofakind(total_cards):
-            return 3
+            return 300
         if self.is_twopair(total_cards):
-            return 2
+            return 200
         if self.is_pair(total_cards):
-            return 1
+            return 100
 
         return 0
 

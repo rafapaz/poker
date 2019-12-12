@@ -34,7 +34,7 @@ if __name__ == "__main__":
                 poker.get_money(p.bet(100))
 
             
-        print([str(p) for p in poker.players])
+        #print([str(p) for p in poker.players])
         poker.fold_player(p2)    
         poker.reveal_card()
         poker.reveal_card()

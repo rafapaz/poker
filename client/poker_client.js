@@ -44,7 +44,7 @@ function showCards(data)
     
     newcontent = cards + me.innerHTML;
     me.innerHTML = newcontent;
-    console.log(newcontent);
+    //console.log(newcontent);
 }
 
 function showTableCards(data)
@@ -70,6 +70,14 @@ function toogleShowButtons(show)
 function check()
 {
     websocket.send(JSON.stringify({action: 'check'}));
+}
+
+function clean_game()
+{
+    toogleShowButtons(false);
+    table = document.getElementById('table');
+    table.innerHTML = '';
+    websocket.send(JSON.stringify({action: 'idle'}));
 }
 
 function connect()
@@ -104,7 +112,7 @@ function connect()
                 showCards(data.value);
                 break;
             case 'wait_game':
-                websocket.send(JSON.stringify({action: 'idle'}));
+                //websocket.send(JSON.stringify({action: 'idle'}));
                 break;
             case 'wait_play':
                 toogleShowButtons(false);
@@ -114,6 +122,9 @@ function connect()
                 break;
             case 'table_cards':
                 showTableCards(data.value);
+                break;
+            case 'end_game':
+                setTimeout(clean_game, 10000);                
                 break;
             default:
                 console.error("unsupported event", data);
