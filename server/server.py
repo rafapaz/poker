@@ -17,18 +17,28 @@ async def notify_users(message):
         await asyncio.wait([user.websocket.send(message) for user in USERS])
 
 
+async def send(who=None, type_msg='msg', msg=None):
+    if type_msg == 'msg':
+        print(msg)
+    message = json.dumps({'type': type_msg, 'value': msg})
+    if who:
+        await who.send(message)
+    else:
+        await notify_users(message)
+
+
 async def register(websocket):
     msg = await websocket.recv()
     data = json.loads(msg)
     user = User(data['name'], websocket)
     USERS.add(user)    
-    await send_msg('{} connected!'.format(user.player.name))
+    await send(None, 'msg', '{} connected!'.format(user.player.name))
     
 
 async def unregister(user):
     poker.unregister_player(user.player)
     USERS.remove(user)    
-    await send_msg('{} disconnect!'.format(user.player.name))
+    await send(None, 'msg', '{} disconnect!'.format(user.player.name))
     
 
 def get_user_by_ws(websocket):
@@ -45,26 +55,17 @@ def get_user_by_name(name):
     return None
 
 
-async def send_msg(msg):    
-    print(msg)
-    message = json.dumps({"type": "msg", "value": msg})
-    await notify_users(message)
-
-
 async def start_game(user):
     global IN_GAME
     
     if IN_GAME or len(USERS) <= 1:
-        message = json.dumps({"type": "wait_game"})
-        await user.websocket.send(message)
+        await send(user.websocket, 'wait_game')        
         return
 
     IN_GAME = True
-    await send_msg('Game started!')
+    await send(None, 'msg', 'Game started!')    
+    await send(None, 'users', [user.player.serialize() for user in USERS])
     
-    message = json.dumps({"type": "users", "value": [user.player.serialize() for user in USERS]})    
-    await notify_users(message)
-
     for u in USERS:        
         poker.register_player(u.player)
     poker.start_game()
@@ -73,17 +74,16 @@ async def start_game(user):
     print('Players: ' + str(poker.players))
     for p in poker.players:
         u = get_user_by_name(p.name)
+        
         print('Sending cards to ' + u.player.name)
-        message = json.dumps({"type": "cards", "value": [str(c) for c in u.player.cards]})
-        await u.websocket.send(message)
-
+        await send(u.websocket, 'cards', [str(c) for c in u.player.cards])
+        
         if p.name == poker.get_dealer().name:
-            message = json.dumps({"type": "play"})
-            await send_msg('Its {} turn'.format(p.name))
+            await send(u.websocket, 'play')            
+            await send(None, 'msg', 'Its {} turn'.format(p.name))
         else:
-            message = json.dumps({"type": "wait_play"})
-        await u.websocket.send(message)
-
+            await send(u.websocket, 'wait_play')
+        
 
 async def reveal_card():
     if len(poker.table_cards) == 0:
@@ -93,39 +93,34 @@ async def reveal_card():
     elif len(poker.table_cards) < 5:
         poker.reveal_card()
     
-    message = json.dumps({"type": "table_cards", "value": [str(c) for c in poker.table_cards]})
-    await notify_users(message)
-
+    await send(None, 'table_cards', [str(c) for c in poker.table_cards])
+    
 
 async def check(user):
     global IN_GAME
-    message = json.dumps({"type": "wait_play"})
-    await user.websocket.send(message)
+    await send(user.websocket, 'wait_play')    
     print('CHECK : ' + user.player.name)
      
     if poker.close_cycle():
         if len(poker.table_cards) == 5:
             await show_winner()
             IN_GAME = False
-            message = json.dumps({"type": "end_game"})
-            await notify_users(message)
+            await send(None, 'end_game')      
             return
         else:
-            await reveal_card()        
+            await reveal_card()
 
     next_user = get_user_by_name(poker.next_player().name)
-    message = json.dumps({"type": "play"})
-    await next_user.websocket.send(message)
-    await send_msg('Its {} turn'.format(next_user.player.name))
+    await send(next_user.websocket, 'play')    
+    await send(None, 'msg', 'Its {} turn'.format(next_user.player.name))
 
 
 async def show_winner():
     win, score = poker.winner()
-    await send_msg('{} win with {}'.format(win.name, score))
+    await send(None, 'msg', '{} win with {}'.format(win.name, score))
 
 
-async def PokerServer(websocket, path):
-    # register(websocket) sends user_event() to websocket
+async def PokerServer(websocket, path):    
     await register(websocket)
     user = get_user_by_ws(websocket)
     
