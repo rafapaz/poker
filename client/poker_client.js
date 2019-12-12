@@ -72,6 +72,11 @@ function check()
     websocket.send(JSON.stringify({action: 'check'}));
 }
 
+function fold()
+{
+    websocket.send(JSON.stringify({action: 'fold'}));
+}
+
 function clean_game()
 {
     toogleShowButtons(false);
@@ -112,7 +117,7 @@ function connect()
                 showCards(data.value);
                 break;
             case 'wait_game':
-                //websocket.send(JSON.stringify({action: 'idle'}));
+                toogleShowButtons(false);
                 break;
             case 'wait_play':
                 toogleShowButtons(false);

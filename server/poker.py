@@ -28,7 +28,7 @@ class Poker:
         self.players.add(player)
     
     def unregister_player(self, player):
-        if player in self.players:
+        if player in self.players:            
             self.players.remove(player)
 
     def reveal_card(self):
@@ -54,9 +54,13 @@ class Poker:
         self.table_money += value
 
     def fold_player(self, player):
+        if self.first_index == len(self.players) - 1:
+            self.first_index = 0
+        
         self.fold.add(player)
         self.players.remove(player)
-
+        self.next_index = (self.next_index - 1) % len(self.players)
+        
     def close_cycle(self):
         return True if self.next_index == self.first_index else False
 

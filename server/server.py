@@ -96,11 +96,8 @@ async def reveal_card():
     await send(None, 'table_cards', [str(c) for c in poker.table_cards])
     
 
-async def check(user):
+async def do_cycle():
     global IN_GAME
-    await send(user.websocket, 'wait_play')    
-    print('CHECK : ' + user.player.name)
-     
     if poker.close_cycle():
         if len(poker.table_cards) == 5:
             await show_winner()
@@ -113,6 +110,18 @@ async def check(user):
     next_user = get_user_by_name(poker.next_player().name)
     await send(next_user.websocket, 'play')    
     await send(None, 'msg', 'Its {} turn'.format(next_user.player.name))
+
+
+async def check(user):    
+    await send(user.websocket, 'wait_play')    
+    print('CHECK : ' + user.player.name)    
+    await do_cycle()
+  
+
+async def fold(user):    
+    poker.fold_player(user.player)
+    print('FOLD : ' + user.player.name)
+    await do_cycle()
 
 
 async def show_winner():
@@ -133,6 +142,8 @@ async def PokerServer(websocket, path):
                 await start_game(user)
             elif data["action"] == "check":
                 await check(user)
+            elif data["action"] == "fold":
+                await fold(user)
             else:
                 print("unsupported event: {}", data)
     except websockets.exceptions.ConnectionClosedError:
