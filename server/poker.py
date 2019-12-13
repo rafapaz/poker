@@ -30,6 +30,8 @@ class Poker:
     def unregister_player(self, player):
         if player in self.players:            
             self.players.remove(player)
+        if player in self.fold:
+            self.fold.remove(player)
 
     def reveal_card(self):
         self.table_cards.append(self.deck.give())
@@ -59,7 +61,7 @@ class Poker:
         
         self.fold.add(player)
         self.players.remove(player)
-        self.next_index = (self.next_index - 1) % len(self.players)
+        self.next_index = self.next_index % len(self.players)
         
     def close_cycle(self):
         return True if self.next_index == self.first_index else False
@@ -69,6 +71,9 @@ class Poker:
         score = -1
         cod_score = -1
         
+        if len(self.players) == 1:
+            best = self.players.pop()            
+
         for p in self.players:
             cs = self.get_score(p)
             value_player_cards = max([c.value for c in p.cards])
@@ -78,9 +83,8 @@ class Poker:
                 cod_score = cs
                 best = p
 
-        best.money += self.table_money
-        self.table_money = 0
-        return best, self.score[int(cod_score/100)]
+        best.money += self.table_money        
+        return best, (self.score[int(cod_score/100)] if cod_score > -1 else None)
 
     def get_score(self, player):
         total_cards = self.table_cards + player.cards

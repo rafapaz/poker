@@ -13,10 +13,12 @@ class Player:
         self.money -= value
         return value
 
-    def serialize(self):
+    def serialize(self, all=False):
         ret = dict()
         ret['name'] = self.name
         ret['money'] = self.money
+        if all:
+            ret['cards'] = [str(c) for c in self.cards]
         return ret
 
     def __str__(self):

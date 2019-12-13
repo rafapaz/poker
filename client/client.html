@@ -7,7 +7,7 @@
     </head>
     <body>
         
-        <div class="w3-panel w3-center" style="width: 800px; height: 600px;">
+        <div class="w3-cell w3-panel w3-center" style="width: 800px; height: 600px;">
             <div class="w3-display-container w3-green w3-round-xxlarge" style="width: 800px; height: 450px;" >
                 <div class="w3-display-topleft" id="slot_2"></div>
                 <div class="w3-display-topright" id="slot_4"></div>
@@ -29,42 +29,10 @@
                 <div class="w3-cell">
                     <input type="text" name="name" id="name" class="w3-input" placeholder="Type your name" />
                 </div>
-                <div id="connect" class="w3-cell">
-                    
-                </div>
+                <div id="connect" class="w3-cell"></div>
             </div>
-            <div id="message" class="w3-panel">
-
-            </div>
+            <div id="message" class="w3-panel"></div>
         </div>
-
-        <script>
-            /*
-            var websocket = new WebSocket("ws://127.0.0.1:6789/");
-
-            minus.onclick = function (event) {
-                websocket.send(JSON.stringify({action: 'minus'}));
-            }
-            plus.onclick = function (event) {
-                websocket.send(JSON.stringify({action: 'plus'}));
-            }
-            websocket.onmessage = function (event) {
-                data = JSON.parse(event.data);
-                switch (data.type) {
-                    case 'state':
-                        value.textContent = data.value;
-                        break;
-                    case 'users':
-                        users.textContent = (
-                            data.count.toString() + " user" +
-                            (data.count == 1 ? "" : "s"));
-                        break;
-                    default:
-                        console.error(
-                            "unsupported event", data);
-                }
-            };
-            */
-        </script>
+        <div class="w3-cell" id="pause_time"></div>
     </body>
 </html>

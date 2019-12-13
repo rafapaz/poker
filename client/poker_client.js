@@ -1,5 +1,6 @@
 
 var websocket;
+var slots = [];
 
 window.onload = function() {
 
@@ -30,6 +31,8 @@ function refreshUsers(data)
         
         slot = document.getElementById('slot_'+i)
         slot.innerHTML = '<div class="w3-panel w3-grey w3-circle">' + data[i]['name'] + '<br>' + data[i]['money'] + '</div>';
+
+        slots[data[i]['name']] = i;        
     }
 }
 
@@ -43,8 +46,7 @@ function showCards(data)
     }
     
     newcontent = cards + me.innerHTML;
-    me.innerHTML = newcontent;
-    //console.log(newcontent);
+    me.innerHTML = newcontent;    
 }
 
 function showTableCards(data)
@@ -56,6 +58,18 @@ function showTableCards(data)
         cards += data[i] + ' ';
     }
     table.innerHTML = cards;
+}
+
+function showAllCards(data)
+{    
+    for (i in data)
+    {
+        if (data[i]['name'] == document.getElementById('name').value)
+            continue;
+
+        slot = document.getElementById('slot_' + slots[data[i]['name']])
+        slot.innerHTML += data[i]['cards'];     
+    }    
 }
 
 function toogleShowButtons(show)
@@ -79,10 +93,25 @@ function fold()
 
 function clean_game()
 {
+    slots = [];
+    message.innerHTML = '';
     toogleShowButtons(false);
     table = document.getElementById('table');
-    table.innerHTML = '';
-    websocket.send(JSON.stringify({action: 'idle'}));
+    table.innerHTML = '';    
+}
+
+function showPauseTime(data)
+{
+    pause = document.getElementById('pause_time');
+    if (parseInt(data) == 0)
+    {
+        pause.innerHTML = '';
+        clean_game();
+    }
+    else
+    {
+        pause.innerHTML = 'Game will start in ' + data + ' seconds';
+    }
 }
 
 function connect()
@@ -91,10 +120,11 @@ function connect()
 
     websocket.onopen = function ()
     {        
-        console.log('Connected!');        
+        console.log('Connected!');
         websocket.send(JSON.stringify({name: document.getElementById('name').value}));
         document.getElementById('connect').innerHTML = button_disconnect;
-
+        document.getElementById('name').disabled = true;
+        clean_game();
         websocket.send(JSON.stringify({action: 'idle'}));
     };
 
@@ -108,13 +138,16 @@ function connect()
         data = JSON.parse(event.data);
         switch (data.type) {
             case 'msg':
-                message.innerHTML = data.value;
+                message.innerHTML = data.value + '<br>' + message.innerHTML;
                 break;
             case 'users':
                 refreshUsers(data.value);
                 break;
             case 'cards':                
                 showCards(data.value);
+                break;
+            case 'show_all_cards':                
+                showAllCards(data.value);
                 break;
             case 'wait_game':
                 toogleShowButtons(false);
@@ -128,8 +161,12 @@ function connect()
             case 'table_cards':
                 showTableCards(data.value);
                 break;
-            case 'end_game':
-                setTimeout(clean_game, 10000);                
+            case 'end_game':                
+                websocket.send(JSON.stringify({action: 'idle'}));
+                break;
+            case 'pause_time':
+                showPauseTime(data.value);
+                websocket.send(JSON.stringify({action: 'idle'}));
                 break;
             default:
                 console.error("unsupported event", data);
@@ -143,4 +180,5 @@ function disconnect()
     websocket.send(JSON.stringify({action: 'disconnect'}));
     websocket.close();
     document.getElementById('connect').innerHTML = button_connect;
+    document.getElementById('name').disabled = false;
 }

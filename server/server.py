@@ -10,6 +10,9 @@ from user import User
 USERS = set()
 poker = Poker()
 IN_GAME = False
+PAUSE = False
+PAUSE_TIME = 10
+PAUSE_START = 0
 
 
 async def notify_users(message):
@@ -35,10 +38,13 @@ async def register(websocket):
     await send(None, 'msg', '{} connected!'.format(user.player.name))
     
 
-async def unregister(user):
+async def unregister(user):    
+    poker.fold_player(user.player)
     poker.unregister_player(user.player)
     USERS.remove(user)    
     await send(None, 'msg', '{} disconnect!'.format(user.player.name))
+    if len(poker.players) == 1:        
+        await end_game()
     
 
 def get_user_by_ws(websocket):
@@ -57,14 +63,18 @@ def get_user_by_name(name):
 
 async def start_game(user):
     global IN_GAME
+    global PAUSE
     
-    if IN_GAME or len(USERS) <= 1:
-        await send(user.websocket, 'wait_game')        
+    if IN_GAME or len(USERS) <= 1:        
+        return
+    
+    if PAUSE:
+        await pause_time()
         return
 
     IN_GAME = True
     await send(None, 'msg', 'Game started!')    
-    await send(None, 'users', [user.player.serialize() for user in USERS])
+    await send(None, 'users', [user.player.serialize(all=False) for user in USERS])
     
     for u in USERS:        
         poker.register_player(u.player)
@@ -96,13 +106,11 @@ async def reveal_card():
     await send(None, 'table_cards', [str(c) for c in poker.table_cards])
     
 
-async def do_cycle():
-    global IN_GAME
+async def do_cycle():    
     if poker.close_cycle():
         if len(poker.table_cards) == 5:
-            await show_winner()
-            IN_GAME = False
-            await send(None, 'end_game')      
+            await send(None, 'show_all_cards', [p.serialize(all=True) for p in poker.players])            
+            await end_game()
             return
         else:
             await reveal_card()
@@ -113,20 +121,50 @@ async def do_cycle():
 
 
 async def check(user):    
-    await send(user.websocket, 'wait_play')    
-    print('CHECK : ' + user.player.name)    
+    await send(user.websocket, 'wait_play')
+    await send(None, 'msg', user.player.name + ' CHECK')    
     await do_cycle()
   
 
 async def fold(user):    
     poker.fold_player(user.player)
-    print('FOLD : ' + user.player.name)
+    await send(user.websocket, 'wait_play')
+    await send(None, 'msg', user.player.name + ' FOLD')
+    if len(poker.players) == 1:        
+        await end_game()
+        return
     await do_cycle()
 
 
 async def show_winner():
     win, score = poker.winner()
     await send(None, 'msg', '{} win with {}'.format(win.name, score))
+
+
+async def end_game():
+    global IN_GAME
+    global PAUSE    
+    global PAUSE_START
+
+    await show_winner()
+    IN_GAME = False
+    PAUSE = True
+    PAUSE_START = time.time()
+    await send(None, 'end_game')
+
+
+async def pause_time():
+    global PAUSE    
+    global PAUSE_START
+    global PAUSE_TIME
+
+    now = time.time()
+    if int(now - PAUSE_START) > PAUSE_TIME:
+        PAUSE = False
+        await send(None, 'end_game')
+        return
+        
+    await send(None, 'pause_time', int(PAUSE_TIME - (now - PAUSE_START)))
 
 
 async def PokerServer(websocket, path):    
@@ -139,7 +177,7 @@ async def PokerServer(websocket, path):
             if data["action"] == "disconnect":
                 await unregister(user)
             elif data["action"] == "idle":
-                await start_game(user)
+                await start_game(user)            
             elif data["action"] == "check":
                 await check(user)
             elif data["action"] == "fold":
