@@ -45,6 +45,11 @@ class Poker:
         ret = list_player[self.next_index]
         self.next_index = ((self.next_index + 1) % len(self.players)) if len(self.players) > 0 else 0
         return ret
+    
+    def who_play_now(self):
+        list_player = list(self.players)
+        ret = list_player[self.next_index - 1]        
+        return ret
 
     def deliver(self):
         for p in self.players:
