@@ -1,5 +1,6 @@
 
 var websocket;
+var my_cards = '';
 var slots = [];
 
 window.onload = function() {
@@ -34,30 +35,34 @@ function refreshUsers(data)
 
         slots[data[i]['name']] = i;        
     }
+    
 }
 
-function showCards(data)
-{    
-    me = document.getElementById('me');
-    var cards = '';
+function saveMyCards(data)
+{
+    my_cards = '';
     for (i in data)
     {
-        cards += data[i] + ' ';
+        my_cards += data[i] + ' ';
     }
-    
-    newcontent = cards + me.innerHTML;
+}
+
+function showMyCards()
+{    
+    me = document.getElementById('me');    
+    newcontent = my_cards + me.innerHTML;
     me.innerHTML = newcontent;    
 }
 
-function showTableCards(data)
+function showTable(data)
 {
     table = document.getElementById('table');
     var cards = '';
-    for (i in data)
+    for (i in data.cards)
     {
-        cards += data[i] + ' ';
+        cards += data.cards[i] + ' ';
     }
-    table.innerHTML = cards;
+    table.innerHTML = cards + '<br>' + data.money;
 }
 
 function showAllCards(data)
@@ -81,6 +86,16 @@ function toogleShowButtons(show)
         buttons.style["pointer-events"] = "none";        
 }
 
+function showRaiseInput()
+{
+    raise_div = document.getElementById("raise_div");
+    if (raise_div.style.display === "none") {
+        raise_div.style.display = "block";
+    } else {
+        raise_div.style.display = "none";
+    }
+}
+
 function check()
 {
     websocket.send(JSON.stringify({action: 'check'}));
@@ -89,6 +104,15 @@ function check()
 function fold()
 {
     websocket.send(JSON.stringify({action: 'fold'}));
+}
+
+function raise(e)
+{    
+    if (e.keyCode == 13) {
+        raise_value = document.getElementById('raise_input').value;
+        websocket.send(JSON.stringify({action: 'raise', value: raise_value}));
+        showRaiseInput();
+    }
 }
 
 function clean_game()
@@ -144,7 +168,8 @@ function connect()
                 refreshUsers(data.value);
                 break;
             case 'cards':                
-                showCards(data.value);
+                saveMyCards(data.value);
+                showMyCards();
                 break;
             case 'show_all_cards':                
                 showAllCards(data.value);
@@ -153,13 +178,13 @@ function connect()
                 toogleShowButtons(false);
                 break;
             case 'wait_play':
-                toogleShowButtons(false);
+                toogleShowButtons(false);                
                 break;
             case 'play':
-                toogleShowButtons(true);
+                toogleShowButtons(true);                
                 break;
             case 'table_cards':
-                showTableCards(data.value);
+                //showTableCards(data.value);
                 break;
             case 'end_game':                
                 websocket.send(JSON.stringify({action: 'idle'}));
@@ -167,6 +192,11 @@ function connect()
             case 'pause_time':
                 showPauseTime(data.value);
                 websocket.send(JSON.stringify({action: 'idle'}));
+                break;
+            case 'update':
+                refreshUsers(data.value.players);
+                showMyCards();
+                showTable(data.value.table);                
                 break;
             default:
                 console.error("unsupported event", data);

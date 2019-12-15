@@ -66,6 +66,16 @@ def get_user_by_name(name):
     return None
 
 
+def get_update_dict():
+    ret = dict()
+    table = dict()
+    table['cards'] = [str(c) for c in poker.table_cards]
+    table['money'] = poker.table_money
+    ret['table'] = table
+    ret['players'] = [p.serialize(all=False) for p in poker.players]
+    return ret
+
+
 async def start_game(user):
     global IN_GAME
     global PAUSE
@@ -123,6 +133,7 @@ async def do_cycle():
     next_user = get_user_by_name(poker.next_player().name)
     await send(next_user.websocket, 'play')    
     await send(None, 'msg', 'Its {} turn'.format(next_user.player.name))
+    await send(None, 'update', get_update_dict())
 
 
 async def check(user):    
@@ -138,6 +149,13 @@ async def fold(user):
     if len(poker.players) == 1:        
         await end_game()
         return
+    await do_cycle()
+
+
+async def raise_bet(user, value):
+    poker.get_money(user.player.bet(int(value)))
+    await send(user.websocket, 'wait_play')
+    await send(None, 'msg', user.player.name + ' RAISE to ' + value)    
     await do_cycle()
 
 
@@ -176,17 +194,19 @@ async def PokerServer(websocket, path):
     await register(websocket)
     user = get_user_by_ws(websocket)
     
-    try:        
+    try:
         async for message in websocket:
             data = json.loads(message)
-            if data["action"] == "disconnect":
+            if data['action'] == 'disconnect':
                 await unregister(user)
-            elif data["action"] == "idle":
+            elif data['action'] == 'idle':
                 await start_game(user)            
-            elif data["action"] == "check":
+            elif data['action'] == 'check':
                 await check(user)
-            elif data["action"] == "fold":
+            elif data['action'] == 'fold':
                 await fold(user)
+            elif data['action'] == 'raise':
+                await raise_bet(user, data['value'])
             else:
                 print("unsupported event: {}", data)
     except websockets.exceptions.ConnectionClosedError:
