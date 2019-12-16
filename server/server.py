@@ -106,7 +106,7 @@ async def start_game(user):
         await send(u.websocket, 'cards', [str(c) for c in u.player.cards])
         
         if p.name == poker.get_dealer().name:
-            await send(u.websocket, 'play')            
+            await send(u.websocket, 'play', poker.high_bet)            
             await send(None, 'msg', 'Its {} turn'.format(p.name))
         else:
             await send(u.websocket, 'wait_play')
@@ -133,7 +133,7 @@ async def do_cycle():
             await reveal_card()
 
     next_user = get_user_by_name(poker.next_player().name)
-    await send(next_user.websocket, 'play')    
+    await send(next_user.websocket, 'play', poker.high_bet)
     await send(None, 'msg', 'Its {} turn'.format(next_user.player.name))
     await send(None, 'update', get_update_dict())
 

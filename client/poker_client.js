@@ -79,11 +79,38 @@ function showAllCards(data)
 
 function toogleShowButtons(show)
 {
-    buttons = document.getElementById('buttons');
+    fold_button = document.getElementById('fold_button');
+    check_button = document.getElementById('check_button');
+    call_button = document.getElementById('call_button');
+    raise_button = document.getElementById('raise_button');
+
     if (show)
-        buttons.style["pointer-events"] = "auto";
+    {
+        fold_button.style["pointer-events"] = "auto";
+        check_button.style["pointer-events"] = "auto";
+        call_button.style["pointer-events"] = "auto";
+        raise_button.style["pointer-events"] = "auto";
+    }
     else
-        buttons.style["pointer-events"] = "none";        
+    {
+        fold_button.style["pointer-events"] = "none";
+        check_button.style["pointer-events"] = "none";
+        call_button.style["pointer-events"] = "none";
+        raise_button.style["pointer-events"] = "none";
+    }
+}
+
+function disableSomeButtons(v)
+{
+    value = parseInt(v);
+    
+    check_button = document.getElementById('check_button');
+    call_button = document.getElementById('call_button');
+
+    if (value > 0)    
+        check_button.style["pointer-events"] = "none"; 
+    else     
+        call_button.style["pointer-events"] = "none"; 
 }
 
 function showRaiseInput()
@@ -183,10 +210,11 @@ function connect()
                 toogleShowButtons(false);
                 break;
             case 'wait_play':
-                toogleShowButtons(false);                
+                toogleShowButtons(false);
                 break;
-            case 'play':
-                toogleShowButtons(true);                
+            case 'play':                
+                toogleShowButtons(true);
+                disableSomeButtons(data.value);
                 break;
             case 'table_cards':
                 //showTableCards(data.value);
