@@ -4,13 +4,14 @@ from deck import Deck
 from player import Player
 
 class Poker:
-    def __init__(self, players=None):  
-        self.deck = Deck()      
+    def __init__(self, players=None):
+        self.deck = Deck()
         self.players = players if players is not None else set()
         self.fold = set()
         self.dealer_index = -1
         self.next_index = 0
         self.first_index = 0
+        self.high_bet = 0
         self.score = ['High Card', 'Pair', 'Two pairs', 'Three of a kind', 'Straight', 'Flush', 
                         'Full House', 'Four of a Kind', 'Straight Flush', 'Royal Flush'] # 0-9
             
@@ -23,6 +24,9 @@ class Poker:
         self.dealer_index = ((self.dealer_index + 1) % len(self.players)) if len(self.players) > 0 else 0
         self.next_index = ((self.dealer_index + 1) % len(self.players)) if len(self.players) > 0 else 0
         self.first_index = self.dealer_index
+        self.high_bet = 0
+        for p in self.players:
+            p.last_bet = 0
 
     def register_player(self, player):
         self.players.add(player)
@@ -57,7 +61,13 @@ class Poker:
             p.receive(self.deck.give())
             p.receive(self.deck.give())
         
-    def get_money(self, value):
+    def get_money(self, player, value):
+        if value > self.high_bet:
+            list_player = list(self.players)
+            for i, p in enumerate(list_player):
+                if p.name == player.name:
+                    self.first_index = i
+        self.high_bet = value
         self.table_money += value
 
     def fold_player(self, player):
@@ -69,7 +79,12 @@ class Poker:
         self.next_index = self.next_index % len(self.players)
         
     def close_cycle(self):
-        return True if self.next_index == self.first_index else False
+        if self.next_index == self.first_index:
+            self.high_bet = 0
+            for p in self.players:
+                p.last_bet = 0
+            return True
+        return False
 
     def winner(self):
         best = None

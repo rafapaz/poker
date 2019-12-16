@@ -153,9 +153,16 @@ async def fold(user):
 
 
 async def raise_bet(user, value):
-    poker.get_money(user.player.bet(int(value)))
+    poker.get_money(user.player, user.player.bet(int(value)))
     await send(user.websocket, 'wait_play')
     await send(None, 'msg', user.player.name + ' RAISE to ' + value)    
+    await do_cycle()
+
+
+async def call(user):
+    poker.get_money(user.player, user.player.bet(poker.high_bet))
+    await send(user.websocket, 'wait_play')
+    await send(None, 'msg', user.player.name + ' CALL')    
     await do_cycle()
 
 
@@ -205,6 +212,8 @@ async def PokerServer(websocket, path):
                 await check(user)
             elif data['action'] == 'fold':
                 await fold(user)
+            elif data['action'] == 'call':
+                await call(user)
             elif data['action'] == 'raise':
                 await raise_bet(user, data['value'])
             else:

@@ -4,6 +4,7 @@ class Player:
     def __init__(self, name, money):
         self.name = name
         self.money = money
+        self.last_bet = 0
         self.cards = []        
         
     def receive(self, card):
@@ -11,12 +12,14 @@ class Player:
 
     def bet(self, value):
         self.money -= value
+        self.last_bet = value
         return value
 
     def serialize(self, all=False):
         ret = dict()
         ret['name'] = self.name
         ret['money'] = self.money
+        ret['last_bet'] = self.last_bet
         if all:
             ret['cards'] = [str(c) for c in self.cards]
         return ret

@@ -26,12 +26,12 @@ function refreshUsers(data)
         if (data[i]['name'] == document.getElementById('name').value)
         {
             me = document.getElementById('me');
-            me.innerHTML = '<div class="w3-panel w3-blue w3-circle">' + data[i]['name'] + '<br>' + data[i]['money'] + '</div>';
+            me.innerHTML = '<div class="w3-panel w3-blue w3-circle">' + data[i]['last_bet'] + '<br>' + data[i]['name'] + '<br>' + data[i]['money'] + '</div>';
             continue;
         }
         
         slot = document.getElementById('slot_'+i)
-        slot.innerHTML = '<div class="w3-panel w3-grey w3-circle">' + data[i]['name'] + '<br>' + data[i]['money'] + '</div>';
+        slot.innerHTML = '<div class="w3-panel w3-grey w3-circle">' + data[i]['last_bet'] + '<br>' + data[i]['name'] + '<br>' + data[i]['money'] + '</div>';
 
         slots[data[i]['name']] = i;        
     }
@@ -104,6 +104,11 @@ function check()
 function fold()
 {
     websocket.send(JSON.stringify({action: 'fold'}));
+}
+
+function call()
+{
+    websocket.send(JSON.stringify({action: 'call'}));
 }
 
 function raise(e)
