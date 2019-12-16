@@ -43,7 +43,7 @@ function saveMyCards(data)
     my_cards = '';
     for (i in data)
     {
-        my_cards += data[i] + ' ';
+        my_cards += '<img src="img/' + data[i] + '.png" />';
     }
 }
 
@@ -60,7 +60,7 @@ function showTable(data)
     var cards = '';
     for (i in data.cards)
     {
-        cards += data.cards[i] + ' ';
+        cards += '<img src="img/' + data.cards[i] + '.png" />';
     }
     table.innerHTML = cards + '<br>' + data.money;
 }
@@ -73,7 +73,9 @@ function showAllCards(data)
             continue;
 
         slot = document.getElementById('slot_' + slots[data[i]['name']])
-        slot.innerHTML += data[i]['cards'];     
+        
+        for (j in data[i]['cards'])
+            slot.innerHTML += '<img src="img/' + data[i]['cards'][j] + '.png" />';     
     }    
 }
 
