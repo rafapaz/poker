@@ -206,18 +206,12 @@ function connect()
             case 'show_all_cards':                
                 showAllCards(data.value);
                 break;
-            case 'wait_game':
-                toogleShowButtons(false);
-                break;
             case 'wait_play':
                 toogleShowButtons(false);
                 break;
             case 'play':                
                 toogleShowButtons(true);
                 disableSomeButtons(data.value);
-                break;
-            case 'table_cards':
-                //showTableCards(data.value);
                 break;
             case 'end_game':                
                 websocket.send(JSON.stringify({action: 'idle'}));

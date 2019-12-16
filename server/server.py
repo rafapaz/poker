@@ -120,8 +120,6 @@ async def reveal_card():
     elif len(poker.table_cards) < 5:
         poker.reveal_card()
     
-    await send(None, 'table_cards', [str(c) for c in poker.table_cards])
-    
 
 async def do_cycle():    
     if poker.close_cycle():
