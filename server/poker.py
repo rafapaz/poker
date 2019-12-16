@@ -76,7 +76,7 @@ class Poker:
         
         self.fold.add(player)
         self.players.remove(player)
-        self.next_index = self.next_index % len(self.players)
+        self.next_index = (self.next_index % len(self.players)) if len(self.players) > 0 else 0
         
     def close_cycle(self):
         if self.next_index == self.first_index:
@@ -92,16 +92,17 @@ class Poker:
         cod_score = -1
         
         if len(self.players) == 1:
-            best = self.players.pop()            
-
-        for p in self.players:
-            cs = self.get_score(p)
-            value_player_cards = max([c.value for c in p.cards])
-            total_score = cs + value_player_cards
-            if total_score > score:
-                score = total_score
-                cod_score = cs
+            for p in self.players:
                 best = p
+        else:
+            for p in self.players:
+                cs = self.get_score(p)
+                value_player_cards = max([c.value for c in p.cards])
+                total_score = cs + value_player_cards
+                if total_score > score:
+                    score = total_score
+                    cod_score = cs
+                    best = p
 
         best.money += self.table_money        
         return best, (self.score[int(cod_score/100)] if cod_score > -1 else None)

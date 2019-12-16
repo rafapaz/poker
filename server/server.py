@@ -39,16 +39,18 @@ async def register(websocket):
     
 
 async def unregister(user):
-    play_now = poker.who_play_now()
-    poker.fold_player(user.player)
-    poker.unregister_player(user.player)
+    play_now = None
+    if len(poker.players) > 0:
+        play_now = poker.who_play_now()
+        poker.fold_player(user.player)
+        poker.unregister_player(user.player)
     USERS.remove(user)    
     await send(None, 'msg', '{} disconnect!'.format(user.player.name))
     if len(poker.players) == 1:        
         await end_game()
         return
         
-    if user.player.name == play_now.name:
+    if len(poker.players) > 0 and user.player.name == play_now.name:
         await do_cycle()
     
 
