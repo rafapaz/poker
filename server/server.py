@@ -17,7 +17,7 @@ PAUSE_START = 0
 
 async def notify_users(message):
     if USERS:  # asyncio.wait doesn't accept an empty list        
-        await asyncio.wait([user.websocket.send(message) for user in USERS])
+        await asyncio.wait([user.websocket.send(message) for user in USERS if not user.bot])
 
 
 async def send(who=None, type_msg='msg', msg=None):
@@ -25,7 +25,10 @@ async def send(who=None, type_msg='msg', msg=None):
         print(msg)
     message = json.dumps({'type': type_msg, 'value': msg})
     if who:
-        await who.send(message)
+        if who.bot and type_msg == 'play':
+            await bot_play(who)
+        elif not who.bot:
+            await who.websocket.send(message)
     else:
         await notify_users(message)
 
@@ -34,7 +37,11 @@ async def register(websocket):
     msg = await websocket.recv()
     data = json.loads(msg)
     user = User(data['name'], websocket)
-    USERS.add(user)    
+    USERS.add(user)
+    #bot1 = User('BOT 1', None, True)
+    #USERS.add(bot1)
+    #bot2 = User('BOT 2', None, True)
+    #USERS.add(bot2)
     await send(None, 'msg', '{} connected!'.format(user.player.name))
     
 
@@ -103,13 +110,13 @@ async def start_game(user):
         u = get_user_by_name(p.name)
         
         print('Sending cards to ' + u.player.name)
-        await send(u.websocket, 'cards', [str(c) for c in u.player.cards])
+        await send(u, 'cards', [str(c) for c in u.player.cards])
         
         if p.name == poker.get_dealer().name:
-            await send(u.websocket, 'play', poker.high_bet)            
+            await send(u, 'play', poker.high_bet)            
             await send(None, 'msg', 'Its {} turn'.format(p.name))
         else:
-            await send(u.websocket, 'wait_play')
+            await send(u, 'wait_play')
         
 
 async def reveal_card():
@@ -131,20 +138,20 @@ async def do_cycle():
             await reveal_card()
 
     next_user = get_user_by_name(poker.next_player().name)
-    await send(next_user.websocket, 'play', poker.high_bet)
+    await send(next_user, 'play', poker.high_bet)
     await send(None, 'msg', 'Its {} turn'.format(next_user.player.name))
     await send(None, 'update', get_update_dict())
 
 
 async def check(user):    
-    await send(user.websocket, 'wait_play')
+    await send(user, 'wait_play')
     await send(None, 'msg', user.player.name + ' CHECK')    
     await do_cycle()
   
 
 async def fold(user):    
     poker.fold_player(user.player)
-    await send(user.websocket, 'wait_play')
+    await send(user, 'wait_play')
     await send(None, 'msg', user.player.name + ' FOLD')
     if len(poker.players) == 1:        
         await end_game()
@@ -154,14 +161,14 @@ async def fold(user):
 
 async def raise_bet(user, value):
     poker.get_money(user.player, user.player.bet(int(value)))
-    await send(user.websocket, 'wait_play')
+    await send(user, 'wait_play')
     await send(None, 'msg', user.player.name + ' RAISE to ' + value)    
     await do_cycle()
 
 
 async def call(user):
     poker.get_money(user.player, user.player.bet(poker.high_bet))
-    await send(user.websocket, 'wait_play')
+    await send(user, 'wait_play')
     await send(None, 'msg', user.player.name + ' CALL')    
     await do_cycle()
 
@@ -195,6 +202,18 @@ async def pause_time():
         return
         
     await send(None, 'pause_time', int(PAUSE_TIME - (now - PAUSE_START)))
+
+
+async def bot_play(bot):
+    action, value = bot.player.play(poker.table_cards, poker.high_bet)
+    if action == 'fold':
+        await fold(bot)
+    elif action == 'check':
+        await check(bot)
+    elif action == 'call':
+        await (bot)
+    elif action == 'raise':
+        await raise_bet(bot, value)
 
 
 async def PokerServer(websocket, path):    
