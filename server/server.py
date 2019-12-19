@@ -38,9 +38,9 @@ async def register(websocket):
     data = json.loads(msg)
     user = User(data['name'], websocket)
     USERS.add(user)
-    #bot1 = User('BOT 1', None, True)
+    #bot1 = User('BOT1', None, True)
     #USERS.add(bot1)
-    #bot2 = User('BOT 2', None, True)
+    #bot2 = User('BOT2', None, True)
     #USERS.add(bot2)
     await send(None, 'msg', '{} connected!'.format(user.player.name))
     
@@ -97,7 +97,7 @@ async def start_game(user):
         return
 
     IN_GAME = True
-    await send(None, 'msg', 'Game started!')    
+    await send(None, 'msg', 'Game started!')
     await send(None, 'users', [user.player.serialize(all=False) for user in USERS])
     
     for u in USERS:        
@@ -106,18 +106,18 @@ async def start_game(user):
     poker.deliver()
 
     print('Players: ' + str(poker.players))
+    print('Dealer: ' + poker.get_dealer().name)
     for p in poker.players:
         u = get_user_by_name(p.name)
         
         print('Sending cards to ' + u.player.name)
         await send(u, 'cards', [str(c) for c in u.player.cards])
-        
-        if p.name == poker.get_dealer().name:
-            await send(u, 'play', poker.high_bet)            
-            await send(None, 'msg', 'Its {} turn'.format(p.name))
-        else:
-            await send(u, 'wait_play')
-        
+        await send(u, 'wait_play')        
+
+    dealer = get_user_by_name(poker.get_dealer().name)
+    await send(dealer, 'play', poker.high_bet)            
+    await send(None, 'msg', 'Its {} turn'.format(dealer.player.name))
+
 
 async def reveal_card():
     if len(poker.table_cards) == 0:
@@ -204,14 +204,14 @@ async def pause_time():
     await send(None, 'pause_time', int(PAUSE_TIME - (now - PAUSE_START)))
 
 
-async def bot_play(bot):
+async def bot_play(bot):    
     action, value = bot.player.play(poker.table_cards, poker.high_bet)
     if action == 'fold':
         await fold(bot)
     elif action == 'check':
         await check(bot)
     elif action == 'call':
-        await (bot)
+        await call(bot)
     elif action == 'raise':
         await raise_bet(bot, value)
 

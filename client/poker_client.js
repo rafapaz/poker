@@ -71,11 +71,13 @@ function showAllCards(data)
     {
         if (data[i]['name'] == document.getElementById('name').value)
             continue;
-
+        
         slot = document.getElementById('slot_' + slots[data[i]['name']])
         
         for (j in data[i]['cards'])
-            slot.innerHTML += '<img src="img/' + data[i]['cards'][j] + '.png" />';     
+        {
+            slot.innerHTML += '<img src="img/' + data[i]['cards'][j] + '.png" />';            
+        }
     }    
 }
 
@@ -208,7 +210,7 @@ function connect()
             case 'show_all_cards':                
                 showAllCards(data.value);
                 break;
-            case 'wait_play':
+            case 'wait_play':                
                 toogleShowButtons(false);
                 break;
             case 'play':                
