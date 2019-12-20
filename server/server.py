@@ -4,6 +4,7 @@ import asyncio
 import json
 import websockets
 import time
+import datetime
 from poker import Poker
 from user import User
 
@@ -21,8 +22,11 @@ async def notify_users(message):
 
 
 async def send(who=None, type_msg='msg', msg=None):
+    #dest = who.player.name if who else 'all'
+    #print(str(datetime.datetime.now()) + ': Sending ' + type_msg + ' to ' + dest)
     if type_msg == 'msg':
         print(msg)
+
     message = json.dumps({'type': type_msg, 'value': msg})
     if who:
         if who.bot and type_msg == 'play':
@@ -38,10 +42,18 @@ async def register(websocket):
     data = json.loads(msg)
     user = User(data['name'], websocket)
     USERS.add(user)
-    #bot1 = User('BOT1', None, True)
-    #USERS.add(bot1)
-    #bot2 = User('BOT2', None, True)
-    #USERS.add(bot2)
+    """
+    bot1 = User('BOT1', None, True)
+    USERS.add(bot1)
+    bot2 = User('BOT2', None, True)
+    USERS.add(bot2)
+    bot3 = User('BOT3', None, True)
+    USERS.add(bot3)
+    bot4 = User('BOT4', None, True)
+    USERS.add(bot4)
+    bot5 = User('BOT5', None, True)
+    USERS.add(bot5)
+    """
     await send(None, 'msg', '{} connected!'.format(user.player.name))
     
 
@@ -128,18 +140,22 @@ async def reveal_card():
         poker.reveal_card()
     
 
-async def do_cycle():    
+async def do_cycle():
+    global IN_GAME
+        
     if poker.close_cycle():
-        if len(poker.table_cards) == 5:
+        if len(poker.table_cards) == 5:      
             await send(None, 'show_all_cards', [p.serialize(all=True) for p in poker.players])            
-            await end_game()
+            await end_game()            
             return
         else:
             await reveal_card()
-
+    
     next_user = get_user_by_name(poker.next_player().name)
     await send(next_user, 'play', poker.high_bet)
-    await send(None, 'msg', 'Its {} turn'.format(next_user.player.name))
+    await send(None, 'msg', 'Its {} turn'.format(next_user.player.name))    
+    if not IN_GAME:
+        return
     await send(None, 'update', get_update_dict())
     
 
