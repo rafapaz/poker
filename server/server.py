@@ -42,7 +42,7 @@ async def register(websocket):
     data = json.loads(msg)
     user = User(data['name'], websocket)
     USERS.add(user)
-    """
+    
     bot1 = User('BOT1', None, True)
     USERS.add(bot1)
     bot2 = User('BOT2', None, True)
@@ -53,7 +53,7 @@ async def register(websocket):
     USERS.add(bot4)
     bot5 = User('BOT5', None, True)
     USERS.add(bot5)
-    """
+    
     await send(None, 'msg', '{} connected!'.format(user.player.name))
     
 
@@ -182,6 +182,9 @@ async def fold(user):
 
 
 async def raise_bet(user, value):
+    if int(value) <= poker.high_bet:
+        await call(user)
+        return
     value_bet = user.player.bet(int(value))
     poker.get_money(user.player, value_bet)
     await send(user, 'wait_play')
