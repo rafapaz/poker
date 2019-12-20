@@ -141,7 +141,7 @@ async def do_cycle():
     await send(next_user, 'play', poker.high_bet)
     await send(None, 'msg', 'Its {} turn'.format(next_user.player.name))
     await send(None, 'update', get_update_dict())
-
+    
 
 async def check(user):    
     await send(user, 'wait_play')

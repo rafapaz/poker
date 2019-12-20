@@ -73,11 +73,13 @@ function showAllCards(data)
             continue;
         
         slot = document.getElementById('slot_' + slots[data[i]['name']])
-        
+        imgs = '';
         for (j in data[i]['cards'])
         {
-            slot.innerHTML += '<img src="img/' + data[i]['cards'][j] + '.png" />';            
+            imgs += '<img src="img/' + data[i]['cards'][j] + '.png" />';            
         }
+
+        slot.innerHTML += imgs; 
     }    
 }
 
@@ -224,7 +226,7 @@ function connect()
                 showPauseTime(data.value);
                 websocket.send(JSON.stringify({action: 'idle'}));
                 break;
-            case 'update':
+            case 'update':                
                 refreshUsers(data.value.players);
                 showMyCards();
                 showTable(data.value.table);                
