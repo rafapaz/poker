@@ -106,7 +106,7 @@ function toogleShowButtons(show)
     }
 }
 
-function disableSomeButtons(v)
+function prepareButtons(v)
 {
     value = parseInt(v);
     
@@ -116,7 +116,10 @@ function disableSomeButtons(v)
     if (value > 0)    
         check_button.style["pointer-events"] = "none"; 
     else     
-        call_button.style["pointer-events"] = "none"; 
+        call_button.style["pointer-events"] = "none";
+    
+    raise_min = document.getElementById('raise_min');
+    raise_min.value = value;
 }
 
 function showRaiseInput()
@@ -127,6 +130,10 @@ function showRaiseInput()
     } else {
         raise_div.style.display = "none";
     }
+
+    raise_input = document.getElementById('raise_input');
+    raise_min = document.getElementById('raise_min');
+    raise_input.value = parseInt(raise_min.value) + 1;
 }
 
 function check()
@@ -148,6 +155,12 @@ function raise(e)
 {    
     if (e.keyCode == 13) {
         raise_value = document.getElementById('raise_input').value;
+        raise_min = document.getElementById('raise_min');
+        if (parseInt(raise_value) <= parseInt(raise_min.value))
+        {
+            alert('Value need be greater than ' + raise_min.value);
+            return false;
+        }
         websocket.send(JSON.stringify({action: 'raise', value: raise_value}));
         showRaiseInput();
     }
@@ -217,7 +230,7 @@ function connect()
                 break;
             case 'play':                
                 toogleShowButtons(true);
-                disableSomeButtons(data.value);
+                prepareButtons(data.value);
                 break;
             case 'end_game':                
                 websocket.send(JSON.stringify({action: 'idle'}));
@@ -231,6 +244,9 @@ function connect()
                 showMyCards();
                 showTable(data.value.table);                
                 break;
+            case 'out':
+                closeSession();
+                break;
             default:
                 console.error("unsupported event", data);
         }
@@ -241,6 +257,11 @@ function connect()
 function disconnect()
 {
     websocket.send(JSON.stringify({action: 'disconnect'}));
+    closeSession();
+}
+
+function closeSession()
+{
     websocket.close();
     document.getElementById('connect').innerHTML = button_connect;
     document.getElementById('name').disabled = false;

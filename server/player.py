@@ -11,6 +11,11 @@ class Player:
         self.cards.append(card)
 
     def bet(self, value):
+        if value > self.money:
+            self.last_bet = self.money
+            self.money = 0
+            return self.last_bet
+            
         self.money -= value
         self.last_bet = value
         return value

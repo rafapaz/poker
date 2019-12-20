@@ -58,6 +58,8 @@ async def register(websocket):
     
 
 async def unregister(user):
+    global IN_GAME
+
     play_now = None
     if len(poker.players) > 0:
         play_now = poker.who_play_now()
@@ -65,6 +67,10 @@ async def unregister(user):
         poker.unregister_player(user.player)
     USERS.remove(user)    
     await send(None, 'msg', '{} disconnect!'.format(user.player.name))
+
+    if not IN_GAME:
+        return
+    
     if len(poker.players) == 1:        
         await end_game()
         return
@@ -176,9 +182,10 @@ async def fold(user):
 
 
 async def raise_bet(user, value):
-    poker.get_money(user.player, user.player.bet(int(value)))
+    value_bet = user.player.bet(int(value))
+    poker.get_money(user.player, value_bet)
     await send(user, 'wait_play')
-    await send(None, 'msg', user.player.name + ' RAISE to ' + value)    
+    await send(None, 'msg', user.player.name + ' RAISE to ' + str(value_bet))
     await do_cycle()
 
 
@@ -203,6 +210,10 @@ async def end_game():
     IN_GAME = False
     PAUSE = True
     PAUSE_START = time.time()
+    for u in USERS.copy():
+        if u.player.money == 0:
+            await send(u, 'out')
+            await unregister(u)
     await send(None, 'end_game')
 
 
