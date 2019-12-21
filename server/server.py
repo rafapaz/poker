@@ -42,7 +42,7 @@ async def register(websocket):
     data = json.loads(msg)
     user = User(data['name'], websocket)
     USERS.add(user)
-    
+    """
     bot1 = User('BOT1', None, True)
     USERS.add(bot1)
     bot2 = User('BOT2', None, True)
@@ -53,7 +53,7 @@ async def register(websocket):
     USERS.add(bot4)
     bot5 = User('BOT5', None, True)
     USERS.add(bot5)
-    
+    """
     await send(None, 'msg', '{} connected!'.format(user.player.name))
     
 
@@ -99,7 +99,8 @@ def get_update_dict():
     table['cards'] = [str(c) for c in poker.table_cards]
     table['money'] = poker.table_money
     ret['table'] = table
-    ret['players'] = [p.serialize(all=False) for p in poker.players]
+    #ret['players'] = [p.serialize(all=False) for p in poker.players]
+    ret['players'] = [u.player.serialize(all=False) for u in USERS]
     return ret
 
 
@@ -133,8 +134,9 @@ async def start_game(user):
         await send(u, 'wait_play')        
 
     dealer = get_user_by_name(poker.get_dealer().name)
-    await send(dealer, 'play', poker.high_bet)            
-    await send(None, 'msg', 'Its {} turn'.format(dealer.player.name))
+    await send(dealer, 'play', poker.high_bet)
+    await send(None, 'update', get_update_dict())    
+    await send(None, 'turn', dealer.player.name)
 
 
 async def reveal_card():
@@ -158,11 +160,11 @@ async def do_cycle():
             await reveal_card()
     
     next_user = get_user_by_name(poker.next_player().name)
-    await send(next_user, 'play', poker.high_bet)
-    await send(None, 'msg', 'Its {} turn'.format(next_user.player.name))    
+    await send(next_user, 'play', poker.high_bet)    
     if not IN_GAME:
         return
     await send(None, 'update', get_update_dict())
+    await send(None, 'turn', next_user.player.name)
     
 
 async def check(user):    
@@ -234,7 +236,8 @@ async def pause_time():
     await send(None, 'pause_time', int(PAUSE_TIME - (now - PAUSE_START)))
 
 
-async def bot_play(bot):    
+async def bot_play(bot):
+    time.sleep(1)
     action, value = bot.player.play(poker.table_cards, poker.high_bet)
     if action == 'fold':
         await fold(bot)

@@ -83,6 +83,16 @@ function showAllCards(data)
     }    
 }
 
+function showTurn(data)
+{
+    if (data == document.getElementById('name').value)    
+        player = document.getElementById('me');    
+    else    
+        player = document.getElementById('slot_' + slots[data])
+    
+    player.innerHTML += "*";
+}
+
 function toogleShowButtons(show)
 {
     fold_button = document.getElementById('fold_button');
@@ -231,6 +241,9 @@ function connect()
             case 'play':                
                 toogleShowButtons(true);
                 prepareButtons(data.value);
+                break;
+            case 'turn':
+                showTurn(data.value);
                 break;
             case 'end_game':                
                 websocket.send(JSON.stringify({action: 'idle'}));
