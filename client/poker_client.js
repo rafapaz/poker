@@ -85,12 +85,12 @@ function showAllCards(data)
 
 function showTurn(data)
 {
-    if (data == document.getElementById('name').value)    
+    if (data.name == document.getElementById('name').value)    
         player = document.getElementById('me');    
     else    
-        player = document.getElementById('slot_' + slots[data])
+        player = document.getElementById('slot_' + slots[data.name])
     
-    player.innerHTML += "*";
+    player.innerHTML += "* " + data.time;
 }
 
 function toogleShowButtons(show)
@@ -244,6 +244,7 @@ function connect()
                 break;
             case 'turn':
                 showTurn(data.value);
+                websocket.send(JSON.stringify({action: 'timeout', value: data.value.name}));
                 break;
             case 'end_game':                
                 websocket.send(JSON.stringify({action: 'idle'}));

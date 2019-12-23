@@ -14,28 +14,39 @@ IN_GAME = False
 PAUSE = False
 PAUSE_TIME = 10
 PAUSE_START = 0
+PLAY_TIME = 30
+PLAY_START = 0
 
 
 async def notify_users(message):
-    if USERS:  # asyncio.wait doesn't accept an empty list        
-        await asyncio.wait([user.websocket.send(message) for user in USERS if not user.bot])
-
-
+    #if USERS:  # asyncio.wait doesn't accept an empty list        
+    #    await asyncio.wait([user.websocket.send(message) for user in USERS if not user.bot])
+    for user in USERS.copy():
+        if not user.bot:
+            try:
+                await user.websocket.send(message)
+            except websockets.exceptions.ConnectionClosedOK:
+                await unregister(user)
+    
+    
 async def send(who=None, type_msg='msg', msg=None):
     #dest = who.player.name if who else 'all'
     #print(str(datetime.datetime.now()) + ': Sending ' + type_msg + ' to ' + dest)
     if type_msg == 'msg':
         print(msg)
-
+    
     message = json.dumps({'type': type_msg, 'value': msg})
     if who:
         if who.bot and type_msg == 'play':
             await bot_play(who)
         elif not who.bot:
-            await who.websocket.send(message)
+            try:
+                await who.websocket.send(message)
+            except websockets.exceptions.ConnectionClosedOK:
+                await unregister(who)
     else:
         await notify_users(message)
-
+    
 
 async def register(websocket):
     msg = await websocket.recv()
@@ -99,7 +110,6 @@ def get_update_dict():
     table['cards'] = [str(c) for c in poker.table_cards]
     table['money'] = poker.table_money
     ret['table'] = table
-    #ret['players'] = [p.serialize(all=False) for p in poker.players]
     ret['players'] = [u.player.serialize(all=False) for u in USERS]
     return ret
 
@@ -107,6 +117,8 @@ def get_update_dict():
 async def start_game(user):
     global IN_GAME
     global PAUSE
+    global PLAY_START
+   
     
     if IN_GAME or len(USERS) <= 1:        
         return
@@ -133,10 +145,11 @@ async def start_game(user):
         await send(u, 'cards', [str(c) for c in u.player.cards])
         await send(u, 'wait_play')        
 
+    PLAY_START = time.time()
     dealer = get_user_by_name(poker.get_dealer().name)
     await send(dealer, 'play', poker.high_bet)
     await send(None, 'update', get_update_dict())    
-    await send(None, 'turn', dealer.player.name)
+    await send(None, 'turn', {'name': dealer.player.name, 'time': int(PLAY_TIME - (time.time() - PLAY_START))})
 
 
 async def reveal_card():
@@ -150,6 +163,9 @@ async def reveal_card():
 
 async def do_cycle():
     global IN_GAME
+    global PLAY_START
+    
+    PLAY_START = time.time()
         
     if poker.close_cycle():
         if len(poker.table_cards) == 5:      
@@ -163,11 +179,11 @@ async def do_cycle():
     await send(next_user, 'play', poker.high_bet)    
     if not IN_GAME:
         return
-    await send(None, 'update', get_update_dict())
-    await send(None, 'turn', next_user.player.name)
+    await send(None, 'update', get_update_dict())    
+    await send(None, 'turn', {'name': next_user.player.name, 'time': int(PLAY_TIME - (time.time() - PLAY_START))})    
     
 
-async def check(user):    
+async def check(user):
     await send(user, 'wait_play')
     await send(None, 'msg', user.player.name + ' CHECK')    
     await do_cycle()
@@ -236,8 +252,26 @@ async def pause_time():
     await send(None, 'pause_time', int(PAUSE_TIME - (now - PAUSE_START)))
 
 
-async def bot_play(bot):
-    time.sleep(1)
+async def verify_timeout(user, turn_name): 
+    global IN_GAME
+    if not IN_GAME:
+        return
+
+    time.sleep(0.5)
+    now = time.time()
+    if int(PLAY_TIME - (now - PLAY_START)) < 0:
+        user = get_user_by_name(turn_name)
+        await unregister(user)
+        await do_cycle()
+        return
+        
+    if turn_name != poker.who_play_now().name:
+        return
+    await send(user, 'update', get_update_dict())    
+    await send(user, 'turn', {'name': turn_name, 'time': int(PLAY_TIME - (now - PLAY_START))})
+
+
+async def bot_play(bot):    
     action, value = bot.player.play(poker.table_cards, poker.high_bet)
     if action == 'fold':
         await fold(bot)
@@ -259,7 +293,9 @@ async def PokerServer(websocket, path):
             if data['action'] == 'disconnect':
                 await unregister(user)
             elif data['action'] == 'idle':
-                await start_game(user)            
+                await start_game(user)
+            elif data['action'] == 'timeout':
+                await verify_timeout(user, data['value'])
             elif data['action'] == 'check':
                 await check(user)
             elif data['action'] == 'fold':
