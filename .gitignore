@@ -1,0 +1,7 @@
+__pycache__/
+bin/
+obj/
+.idea/
+.vscode/
+.vs/
+*.pyc
