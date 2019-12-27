@@ -27,6 +27,9 @@ async def notify_users(message):
                 await user.websocket.send(message)
             except websockets.exceptions.ConnectionClosedOK:
                 await unregister(user)
+            except websockets.exceptions.ConnectionClosedError:
+                print('Unknown error while notifying user: ' + user.player.name)
+                await unregister(user)
     
     
 async def send(who=None, type_msg='msg', msg=None):
@@ -70,6 +73,9 @@ async def register(websocket):
 
 async def unregister(user):
     global IN_GAME
+
+    if user not in USERS:
+        return
 
     play_now = None
     if len(poker.players) > 0:

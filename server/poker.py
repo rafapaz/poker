@@ -74,8 +74,9 @@ class Poker:
         if self.first_index == len(self.players) - 1:
             self.first_index = 0
         
-        self.fold.add(player)
-        self.players.remove(player)
+        if player in self.players:
+            self.fold.add(player)
+            self.players.remove(player)
         self.next_index = (self.next_index % len(self.players)) if len(self.players) > 0 else 0
         
     def close_cycle(self):
