@@ -2,6 +2,7 @@
 var websocket;
 var my_cards = '';
 var slots = [];
+var dealer = '';
 
 // Aux functions
 
@@ -37,13 +38,19 @@ function refreshUsers(data)
         slot.innerHTML = '';
     }
 
-    var me_id = 0;
+    var me_id = 0;    
+    var name = '';
     for (i in data)
     {
         if (data[i]['name'] == document.getElementById('name').value)
         {
+            if (dealer == data[i]['name'])
+                name = data[i]['name'] + ' D';
+            else
+                name = data[i]['name'];
+
             me = document.getElementById('me');
-            me.innerHTML = '<div class="w3-panel w3-blue w3-circle">' + data[i]['last_bet'] + '<br>' + data[i]['name'] + '<br>' + data[i]['money'] + '</div>';
+            me.innerHTML = '<div class="w3-panel w3-blue w3-circle">' + data[i]['last_bet'] + '<br>' + name + '<br>' + data[i]['money'] + '</div>';
             me_id = i;
             break;
         } 
@@ -54,8 +61,13 @@ function refreshUsers(data)
 
     for (i in data)
     {        
+        if (dealer == data[i]['name'])
+            name = data[i]['name'] + ' D';
+        else
+            name = data[i]['name'];
+
         slot = document.getElementById('slot_'+i)
-        slot.innerHTML = '<div class="w3-panel w3-grey w3-circle">' + data[i]['last_bet'] + '<br>' + data[i]['name'] + '<br>' + data[i]['money'] + '</div>';
+        slot.innerHTML = '<div class="w3-panel w3-grey w3-circle">' + data[i]['last_bet'] + '<br>' + name + '<br>' + data[i]['money'] + '</div>';
         slots[data[i]['name']] = i;        
     }
     
@@ -281,6 +293,9 @@ function connect()
                 showMyCards();
                 showTable(data.value.table);                
                 break;
+            case 'dealer':
+                dealer = data.value;
+                break;            
             case 'out':
                 closeSession();
                 break;

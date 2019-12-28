@@ -154,10 +154,13 @@ async def start_game(user):
         await send(u, 'wait_play')        
 
     PLAY_START = time.time()
-    dealer = get_user_by_name(poker.get_dealer().name)
-    await send(dealer, 'play', poker.high_bet)
-    await send(None, 'update', get_update_dict())    
-    await send(None, 'turn', {'name': dealer.player.name, 'time': int(PLAY_TIME - (time.time() - PLAY_START))})
+    dealer = get_user_by_name(poker.get_dealer().name)    
+    await send(None, 'dealer', dealer.player.name)
+    await check(dealer)
+    await raise_bet(get_user_by_name(poker.who_play_now().name), 25)
+    await raise_bet(get_user_by_name(poker.who_play_now().name), 50)
+    #await send(None, 'update', get_update_dict())
+    #await send(None, 'turn', {'name': dealer.player.name, 'time': int(PLAY_TIME - (time.time() - PLAY_START))})
 
 
 async def reveal_card():
@@ -311,7 +314,7 @@ async def PokerServer(websocket, path):
             elif data['action'] == 'call':
                 await call(user)
             elif data['action'] == 'raise':
-                await raise_bet(user, data['value'])
+                await raise_bet(user, data['value'])            
             else:
                 print("unsupported event: {}", data)
     except websockets.exceptions.ConnectionClosedError:
