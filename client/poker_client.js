@@ -3,6 +3,22 @@ var websocket;
 var my_cards = '';
 var slots = [];
 
+// Aux functions
+
+function rotate_left(list, qtd)
+{
+    var len = list.length;
+    var elem;
+    for (var i = 0; i < qtd; i++)
+    {
+        elem = list.shift();
+        list[len-1] = elem;
+    }
+    return list;
+}
+
+////////////////
+
 window.onload = function() {
 
     button_connect = '<div class="w3-button w3-orange" id="connect_button" onclick="connect();">Connect</div>';
@@ -21,18 +37,25 @@ function refreshUsers(data)
         slot.innerHTML = '';
     }
 
+    var me_id = 0;
     for (i in data)
     {
         if (data[i]['name'] == document.getElementById('name').value)
         {
             me = document.getElementById('me');
             me.innerHTML = '<div class="w3-panel w3-blue w3-circle">' + data[i]['last_bet'] + '<br>' + data[i]['name'] + '<br>' + data[i]['money'] + '</div>';
-            continue;
-        }
-        
+            me_id = i;
+            break;
+        } 
+    }
+    
+    data = rotate_left(data, me_id);
+    data.splice(0, 1);
+
+    for (i in data)
+    {        
         slot = document.getElementById('slot_'+i)
         slot.innerHTML = '<div class="w3-panel w3-grey w3-circle">' + data[i]['last_bet'] + '<br>' + data[i]['name'] + '<br>' + data[i]['money'] + '</div>';
-
         slots[data[i]['name']] = i;        
     }
     

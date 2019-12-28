@@ -116,7 +116,9 @@ def get_update_dict():
     table['cards'] = [str(c) for c in poker.table_cards]
     table['money'] = poker.table_money
     ret['table'] = table
-    ret['players'] = [u.player.serialize(all=False) for u in USERS]
+    list_players = [(u.player, poker.get_player_order(u.player)) for u in USERS]
+    list_players.sort(key = lambda x: x[1])
+    ret['players'] = [p.serialize(all=False) for p,o in list_players]
     return ret
 
 

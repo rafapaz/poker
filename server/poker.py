@@ -55,6 +55,13 @@ class Poker:
         ret = list_player[self.next_index - 1]        
         return ret
 
+    def get_player_order(self, player):
+        list_player = list(self.players)
+        for i, p in enumerate(list_player):
+            if p.name == player.name:
+                return i
+        return 99
+
     def deliver(self):
         for p in self.players:
             p.cards = []
