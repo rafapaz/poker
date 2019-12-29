@@ -5,57 +5,85 @@ import json
 import websockets
 import time
 import datetime
-from poker import Poker
+import logging
+from room import Room
 from user import User
 
-USERS = set()
-poker = Poker()
-IN_GAME = False
-PAUSE = False
-PAUSE_TIME = 10
-PAUSE_START = 0
-PLAY_TIME = 30
-PLAY_START = 0
+
+logging.basicConfig(format='%(asctime)s Room: %(room)s %(message)s', level=logging.INFO)
+logger = logging.getLogger(__name__)
+ROOMS = dict()
+PLAYER_ROOM = dict()
+MAX_USERS = 8
 
 
-async def notify_users(message):
+def log(user, msg):
+    logger.info(msg, extra={'room': PLAYER_ROOM[user.player.name]})
+
+
+def open_room():    
+    room = Room()
+    cod = str(hash(datetime.datetime.now()))[-5:]
+    ROOMS[cod] = room
+    return cod
+    
+
+def close_room(cod):
+    del ROOMS[cod]
+
+
+def empty_room():
+    for cod, room in ROOMS.items():
+        if len(room.users) < MAX_USERS:
+            return cod
+    
+    return None
+    
+
+async def notify_users(user, message):
     #if USERS:  # asyncio.wait doesn't accept an empty list        
     #    await asyncio.wait([user.websocket.send(message) for user in USERS if not user.bot])
-    for user in USERS.copy():
-        if not user.bot:
+    for u in ROOMS[PLAYER_ROOM[user.player.name]].users.copy():
+        if not u.bot:
             try:
-                await user.websocket.send(message)
+                await u.websocket.send(message)
             except websockets.exceptions.ConnectionClosedOK:
-                await unregister(user)
+                await unregister(u)
             except websockets.exceptions.ConnectionClosedError:
-                print('Unknown error while notifying user: ' + user.player.name)
-                await unregister(user)
+                log(user, 'Unknown error while notifying user: ' + u.player.name)
+                await unregister(u)
     
     
-async def send(who=None, type_msg='msg', msg=None):
-    #dest = who.player.name if who else 'all'
-    #print(str(datetime.datetime.now()) + ': Sending ' + type_msg + ' to ' + dest)
+async def send(user, dest=None, type_msg='msg', msg=None):
+    #dest_name = dest.player.name if dest else 'all'
+    #log(user, str(datetime.datetime.now()) + ': Sending ' + type_msg + ' to ' + dest_name)
     if type_msg == 'msg':
-        print(msg)
+        log(user, msg)
     
     message = json.dumps({'type': type_msg, 'value': msg})
-    if who:
-        if who.bot and type_msg == 'play':
-            await bot_play(who)
-        elif not who.bot:
+    if dest:
+        if dest.bot and type_msg == 'play':
+            await bot_play(user, dest)
+        elif not dest.bot:
             try:
-                await who.websocket.send(message)
+                await dest.websocket.send(message)
             except websockets.exceptions.ConnectionClosedOK:
-                await unregister(who)
+                await unregister(dest)
     else:
-        await notify_users(message)
+        await notify_users(user, message)
     
 
 async def register(websocket):
     msg = await websocket.recv()
     data = json.loads(msg)
     user = User(data['name'], websocket)
-    USERS.add(user)
+
+    cod_room = empty_room()
+    if cod_room is None:
+        cod_room = open_room()
+    
+    ROOMS[cod_room].users.add(user)
+    PLAYER_ROOM[data['name']] = cod_room
     """
     bot1 = User('BOT1', None, True)
     USERS.add(bot1)
@@ -68,13 +96,16 @@ async def register(websocket):
     bot5 = User('BOT5', None, True)
     USERS.add(bot5)
     """
-    await send(None, 'msg', '{} connected!'.format(user.player.name))
+    await send(user, None, 'msg', '{} connected!'.format(user.player.name))
+    return user
     
 
 async def unregister(user):
-    global IN_GAME
+    room = ROOMS[PLAYER_ROOM[user.player.name]]
+    poker = room.poker
+    users = room.users
 
-    if user not in USERS:
+    if user not in users:
         return
 
     play_now = None
@@ -82,88 +113,89 @@ async def unregister(user):
         play_now = poker.who_play_now()
         poker.fold_player(user.player)
         poker.unregister_player(user.player)
-    USERS.remove(user)    
-    await send(None, 'msg', '{} disconnect!'.format(user.player.name))
+    users.remove(user)
+    await send(user, None, 'msg', '{} disconnect!'.format(user.player.name))
 
-    if not IN_GAME:
+    if len(users) == 0:
+        close_room(PLAYER_ROOM[user.player.name])
+        del PLAYER_ROOM[user.player.name]
+
+    if not room.in_game:
         return
     
-    if len(poker.players) == 1:        
-        await end_game()
+    if len(poker.players) == 1:
+        await end_game(user)
         return
         
     if len(poker.players) > 0 and user.player.name == play_now.name:
-        await do_cycle()
+        await do_cycle(user)
     
 
-def get_user_by_ws(websocket):
-    for u in USERS:
-        if u.websocket == websocket:
-            return u
-    return None
-
-
-def get_user_by_name(name):
-    for u in USERS:
+def get_user_by_name(user, name):    
+    users = ROOMS[PLAYER_ROOM[user.player.name]].users
+    for u in users:
         if u.player.name == name:
             return u
     return None
 
 
-def get_update_dict():
+def get_update_dict(user):
+    room = ROOMS[PLAYER_ROOM[user.player.name]]
+    poker = room.poker
+    users = room.users
+
     ret = dict()
     table = dict()
     table['cards'] = [str(c) for c in poker.table_cards]
     table['money'] = poker.table_money
     ret['table'] = table
-    list_players = [(u.player, poker.get_player_order(u.player)) for u in USERS]
+    list_players = [(u.player, poker.get_player_order(u.player)) for u in users]
     list_players.sort(key = lambda x: x[1])
     ret['players'] = [p.serialize(all=False) for p,o in list_players]
     return ret
 
 
 async def start_game(user):
-    global IN_GAME
-    global PAUSE
-    global PLAY_START
-   
+    room = ROOMS[PLAYER_ROOM[user.player.name]]
+    poker = room.poker
+    users = room.users   
     
-    if IN_GAME or len(USERS) <= 1:        
+    if room.in_game or len(users) <= 1:
         return
     
-    if PAUSE:
-        await pause_time()
+    if room.pause:
+        await pause_time(user)
         return
 
-    IN_GAME = True
-    await send(None, 'msg', 'Game started!')
-    await send(None, 'users', [user.player.serialize(all=False) for user in USERS])
+    room.in_game = True
+    await send(user, None, 'msg', 'Game started!')
+    await send(user, None, 'users', [u.player.serialize(all=False) for u in users])
     
-    for u in USERS:        
+    for u in users:        
         poker.register_player(u.player)
     poker.start_game()
     poker.deliver()
 
-    print('Players: ' + str(poker.players))
-    print('Dealer: ' + poker.get_dealer().name)
+    log(user, 'Players: ' + str(poker.players))
+    log(user, 'Dealer: ' + poker.get_dealer().name)
     for p in poker.players:
-        u = get_user_by_name(p.name)
+        u = get_user_by_name(user, p.name)
         
-        print('Sending cards to ' + u.player.name)
-        await send(u, 'cards', [str(c) for c in u.player.cards])
-        await send(u, 'wait_play')        
+        log(user, 'Sending cards to ' + u.player.name)
+        await send(user, u, 'cards', [str(c) for c in u.player.cards])
+        await send(user, u, 'wait_play')        
 
-    PLAY_START = time.time()
-    dealer = get_user_by_name(poker.get_dealer().name)    
-    await send(None, 'dealer', dealer.player.name)
+    room.play_start = time.time()
+    dealer = get_user_by_name(user, poker.get_dealer().name)    
+    await send(user, None, 'dealer', dealer.player.name)
     await check(dealer)
-    await raise_bet(get_user_by_name(poker.who_play_now().name), 25)
-    await raise_bet(get_user_by_name(poker.who_play_now().name), 50)
-    #await send(None, 'update', get_update_dict())
-    #await send(None, 'turn', {'name': dealer.player.name, 'time': int(PLAY_TIME - (time.time() - PLAY_START))})
+    await raise_bet(get_user_by_name(user, poker.who_play_now().name), 25)
+    await raise_bet(get_user_by_name(user, poker.who_play_now().name), 50)
+    
 
-
-async def reveal_card():
+async def reveal_card(user):
+    poker = ROOMS[PLAYER_ROOM[user.player.name]].poker
+    
     if len(poker.table_cards) == 0:
         poker.reveal_card()
         poker.reveal_card()
@@ -172,117 +204,131 @@ async def reveal_card():
         poker.reveal_card()
     
 
-async def do_cycle():
-    global IN_GAME
-    global PLAY_START
-    
-    PLAY_START = time.time()
+async def do_cycle(user):
+    room = ROOMS[PLAYER_ROOM[user.player.name]]
+    poker = room.poker
+       
+    room.play_start = time.time()
         
     if poker.close_cycle():
         if len(poker.table_cards) == 5:      
-            await send(None, 'show_all_cards', [p.serialize(all=True) for p in poker.players])            
-            await end_game()            
+            await send(user, None, 'show_all_cards', [p.serialize(all=True) for p in poker.players])            
+            await end_game(user)            
             return
         else:
-            await reveal_card()
+            await reveal_card(user)
     
-    next_user = get_user_by_name(poker.next_player().name)
-    await send(next_user, 'play', poker.high_bet)    
-    if not IN_GAME:
+    next_user = get_user_by_name(user, poker.next_player().name)
+    await send(user, next_user, 'play', poker.high_bet)    
+    if not room.in_game:
         return
-    await send(None, 'update', get_update_dict())    
-    await send(None, 'turn', {'name': next_user.player.name, 'time': int(PLAY_TIME - (time.time() - PLAY_START))})    
+    await send(user, None, 'update', get_update_dict(user))
+    await send(user, None, 'turn', {'name': next_user.player.name, 'time': int(room.play_time - (time.time() - room.play_start))})
     
 
-async def check(user):
-    await send(user, 'wait_play')
-    await send(None, 'msg', user.player.name + ' CHECK')    
-    await do_cycle()
+async def check(user):    
+    await send(user, user, 'wait_play')
+    await send(user, None, 'msg', user.player.name + ' CHECK')    
+    await do_cycle(user)
   
 
-async def fold(user):    
+async def fold(user):
+    room = ROOMS[PLAYER_ROOM[user.player.name]]
+    poker = room.poker
+    
     poker.fold_player(user.player)
-    await send(user, 'wait_play')
-    await send(None, 'msg', user.player.name + ' FOLD')
+    await send(user, user, 'wait_play')
+    await send(user, None, 'msg', user.player.name + ' FOLD')
     if len(poker.players) == 1:        
-        await end_game()
+        await end_game(user)
         return
-    await do_cycle()
+    await do_cycle(user)
 
 
 async def raise_bet(user, value):
+    room = ROOMS[PLAYER_ROOM[user.player.name]]
+    poker = room.poker
+
     if int(value) <= poker.high_bet:
         await call(user)
         return
     value_bet = user.player.bet(int(value))
     poker.get_money(user.player, value_bet)
-    await send(user, 'wait_play')
-    await send(None, 'msg', user.player.name + ' RAISE to ' + str(value_bet))
-    await do_cycle()
+    await send(user, user, 'wait_play')
+    await send(user, None, 'msg', user.player.name + ' RAISE to ' + str(value_bet))
+    await do_cycle(user)
 
 
 async def call(user):
+    room = ROOMS[PLAYER_ROOM[user.player.name]]
+    poker = room.poker
+
     poker.get_money(user.player, user.player.bet(poker.high_bet))
-    await send(user, 'wait_play')
-    await send(None, 'msg', user.player.name + ' CALL')    
-    await do_cycle()
+    await send(user, user, 'wait_play')
+    await send(user, None, 'msg', user.player.name + ' CALL')    
+    await do_cycle(user)
 
 
-async def show_winner():
+async def show_winner(user):
+    room = ROOMS[PLAYER_ROOM[user.player.name]]
+    poker = room.poker
+
     win, score = poker.winner()
-    await send(None, 'msg', '{} win with {}'.format(win.name, score))
+    await send(user, None, 'msg', '{} win with {}'.format(win.name, score))
 
 
-async def end_game():
-    global IN_GAME
-    global PAUSE    
-    global PAUSE_START
+async def end_game(user):
+    room = ROOMS[PLAYER_ROOM[user.player.name]]   
+    users = room.users 
 
-    await show_winner()
-    IN_GAME = False
-    PAUSE = True
-    PAUSE_START = time.time()
-    for u in USERS.copy():
+    await show_winner(user)
+    room.in_game = False
+    room.pause = True
+    room.pause_start = time.time()
+    for u in users.copy():
         if u.player.money == 0:
-            await send(u, 'out')
+            await send(user, u, 'out')
             await unregister(u)
-    await send(None, 'end_game')
+    await send(user, None, 'end_game')
 
 
-async def pause_time():
-    global PAUSE    
-    global PAUSE_START
-    global PAUSE_TIME
-
+async def pause_time(user):
+    room = ROOMS[PLAYER_ROOM[user.player.name]]
+    
     now = time.time()
-    if int(now - PAUSE_START) > PAUSE_TIME:
-        PAUSE = False
-        await send(None, 'end_game')
+    if int(now - room.pause_start) > room.pause_time:
+        room.pause = False
+        await send(user, None, 'end_game')
         return
         
-    await send(None, 'pause_time', int(PAUSE_TIME - (now - PAUSE_START)))
+    await send(user, None, 'pause_time', int(room.pause_time - (now - room.pause_start)))
 
 
 async def verify_timeout(user, turn_name): 
-    global IN_GAME
-    if not IN_GAME:
+    room = ROOMS[PLAYER_ROOM[user.player.name]]
+    poker = room.poker
+    
+    if not room.in_game:
         return
 
     time.sleep(0.5)
     now = time.time()
-    if int(PLAY_TIME - (now - PLAY_START)) < 0:
-        user = get_user_by_name(turn_name)
-        await unregister(user)
-        await do_cycle()
+    if int(room.play_time - (now - room.play_start)) < 0:
+        u = get_user_by_name(user, turn_name)
+        await unregister(u)
+        await do_cycle(user)
         return
         
     if turn_name != poker.who_play_now().name:
         return
-    await send(user, 'update', get_update_dict())    
-    await send(user, 'turn', {'name': turn_name, 'time': int(PLAY_TIME - (now - PLAY_START))})
+    await send(user, user, 'update', get_update_dict(user))    
+    await send(user, user, 'turn', {'name': turn_name, 'time': int(room.play_time - (now - room.play_start))})
 
 
-async def bot_play(bot):    
+async def bot_play(user, bot):    
+    room = ROOMS[PLAYER_ROOM[user.player.name]]
+    poker = room.poker
+    
     action, value = bot.player.play(poker.table_cards, poker.high_bet)
     if action == 'fold':
         await fold(bot)
@@ -294,9 +340,8 @@ async def bot_play(bot):
         await raise_bet(bot, value)
 
 
-async def PokerServer(websocket, path):    
-    await register(websocket)
-    user = get_user_by_ws(websocket)
+async def PokerServer(websocket, path):        
+    user = await register(websocket)
     
     try:
         async for message in websocket:
@@ -316,9 +361,9 @@ async def PokerServer(websocket, path):
             elif data['action'] == 'raise':
                 await raise_bet(user, data['value'])            
             else:
-                print("unsupported event: {}", data)
+                log(user, 'unsupported event: {}'.format(data))
     except websockets.exceptions.ConnectionClosedError:
-        print('Connection closed!')    
+        log(user, 'Connection closed!')    
     
 
 
