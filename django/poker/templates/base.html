@@ -35,8 +35,13 @@
       <a href="#" class="w3-bar-item w3-button">English</a>      
     </div>
   </div>
-  <a href="#" class="w3-bar-item w3-button w3-hide-small w3-right w3-hover-teal" title="signup" onclick="document.getElementById('signup').style.display='block'">Sign Up</a>
-  <a href="#" class="w3-bar-item w3-button w3-hide-small w3-right w3-teal" title="signup" onclick="document.getElementById('signin').style.display='block'">Sign In</a>
+  {% if user.is_authenticated %}    
+    <a href="{% url 'main_signout' %}" class="w3-bar-item w3-button w3-hide-small w3-right w3-teal" title="signout">Sign Out</a>
+    <div class="w3-bar-item w3-hide-small w3-right"><i class="fa fa-user" style="font-size:16px;"></i>&nbsp;{{ user.first_name }}&nbsp;&nbsp;&nbsp;&nbsp;$ {{ myuser.money }}</div>
+  {% else %}
+    <a href="#" class="w3-bar-item w3-button w3-hide-small w3-right w3-hover-teal" title="signup" onclick="document.getElementById('signup').style.display='block'">Sign Up</a>
+    <a href="#" class="w3-bar-item w3-button w3-hide-small w3-right w3-teal" title="signup" onclick="document.getElementById('signin').style.display='block'">Sign In</a>
+  {% endif %}
  </div>
 
   <!-- Navbar on small screens -->
@@ -64,14 +69,25 @@
       <h3>Sign Up</h3>      
     </header>
     <div class="w3-container w3-panel">
+        {% if messages %}
+          {% for msg in messages %}                
+              {% if msg.level == DEFAULT_MESSAGE_LEVELS.ERROR %}
+                  <div class="w3-red w3-small">{{msg}}</div>
+              {% endif %}
+          {% endfor %}
+        {% endif %}
       <div class="w3-row">
         <div class="w3-col l3">&nbsp;</div>
-        <div class="w3-col l6">
+        <div class="w3-col l6">          
           <form class="w3-container w3-white" action="{% url 'main_signup' %}" method="POST">
             {% csrf_token %}
             <div class="w3-row w3-margin">
               <div class="w3-col l1"><i class="fa fa-user" style="font-size:32px;"></i></div>
-              <div class="w3-col l11"><input class="w3-input w3-border" type="text" name="username" placeholder="Username" required></div>
+              <div class="w3-col l11"><input class="w3-input w3-border" type="text" name="name" placeholder="Name" required></div>
+            </div>
+            <div class="w3-row w3-margin">
+              <div class="w3-col l1"><i class="fa fa-tag" style="font-size:32px;"></i></div>
+              <div class="w3-col l11"><input class="w3-input w3-border" type="text" name="username" placeholder="Nickname" required></div>
             </div>
             <div class="w3-row w3-margin">
               <div class="w3-col l1"><i class="fa fa-envelope" style="font-size:24px;"></i></div>
@@ -352,6 +368,13 @@
       <h3>Sign In</h3>      
     </header>
     <div class="w3-container w3-panel">
+      {% if messages %}
+        {% for msg in messages %}                
+            {% if msg.level == DEFAULT_MESSAGE_LEVELS.ERROR %}
+                <div class="w3-red w3-small">{{msg}}</div>
+            {% endif %}
+        {% endfor %}
+      {% endif %}
       <div class="w3-row">
         <div class="w3-col l3">&nbsp;</div>
         <div class="w3-col l6">
@@ -391,6 +414,15 @@
 </footer>
 
 <script>
+
+{% if show_signup %}
+  document.getElementById("signup").style.display = "block";
+{% endif %}
+
+{% if show_signin %}
+  document.getElementById("signin").style.display = "block";
+{% endif %}
+
 // Script for side navigation
 function w3_open() {
   var x = document.getElementById("mySidebar");
