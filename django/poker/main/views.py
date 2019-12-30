@@ -7,10 +7,8 @@ from django.contrib.auth.models import User
 from .models import MyUser
 
 
-def index(request):
-    subscribers = MyUser.objects.all().count()
-    context = {'subscribers': subscribers}
-    return render(request, 'main/index.html', context)
+def index(request):    
+    return render(request, 'main/index.html')
 
 @transaction.atomic
 def signup(request):
