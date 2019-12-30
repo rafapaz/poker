@@ -225,14 +225,14 @@ function showPauseTime(data)
     }
 }
 
-function connect(name, money)
+function connect(name, money, token)
 {
     websocket = new WebSocket("ws://127.0.0.1:6789/");
 
     websocket.onopen = function ()
     {
         console.log('Connected!');
-        websocket.send(JSON.stringify({name: name, money: money}));
+        websocket.send(JSON.stringify({name: name, money: money, token: token}));
         username = name;        
         clean_game();
         websocket.send(JSON.stringify({action: 'idle'}));

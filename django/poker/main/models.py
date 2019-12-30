@@ -7,7 +7,7 @@ class MyUser(models.Model):
     email = models.EmailField('Email', unique=True)
     money = models.IntegerField('Money', default=0)
     country = models.CharField('Country', max_length=255)
-    
+    token = models.CharField('Token', max_length=255, blank=True, null=True)
 
     def __str__(self):
         return self.user.first_name

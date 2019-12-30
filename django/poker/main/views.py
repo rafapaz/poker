@@ -1,3 +1,4 @@
+import datetime
 from django.utils import timezone
 from django.shortcuts import render
 from django.http import HttpResponse
@@ -47,6 +48,8 @@ def signin(request):
             myuser = MyUser.objects.get(email=request.POST['email'])
             user = authenticate(request, username=myuser.user.username, password=request.POST['password'])
             login(request, user)
+            myuser.token = str(hash(datetime.datetime.now()))
+            myuser.save()
 
             if myuser.money == 0:
                 diff = timezone.now() - user.last_login                
@@ -73,5 +76,12 @@ def play(request):
     if myuser.money == 0:
         return render(request, 'main/index.html', {'show_cannotplay': True})
 
-    return render(request, 'main/game.html')
+    return render(request, 'main/game.html', {'token': myuser.token})
 
+
+def ack(request):
+    try:
+        myuser = MyUser.objects.get(token=request.GET['token'])
+        return HttpResponse('OK')
+    except Exception:
+        return HttpResponse('ERROR')

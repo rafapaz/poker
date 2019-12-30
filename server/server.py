@@ -77,6 +77,8 @@ async def send(user, dest=None, type_msg='msg', msg=None):
 async def register(websocket):
     msg = await websocket.recv()
     data = json.loads(msg)    
+    if 'token' not in data:
+        return None
     user = User(data['name'], int(data['money']), websocket)
 
     cod_room = empty_room()
@@ -332,7 +334,8 @@ async def bot_play(user, bot):
 
 async def PokerServer(websocket, path):        
     user = await register(websocket)
-    
+    if user is None:
+        return
     try:
         async for message in websocket:
             data = json.loads(message)

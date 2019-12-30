@@ -33,7 +33,7 @@
 <script>
     window.onload = function() {
         message = document.getElementById('message');
-        connect('{{myuser.user.username}}', '{{myuser.money}}');
+        connect('{{myuser.user.username}}', '{{myuser.money}}', '{{myuser.token}}');
     };
 
     window.onunload = window.onbeforeunload = function() { disconnect(); }
