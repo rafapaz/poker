@@ -6,7 +6,7 @@ from player import Player
 class Poker:
     def __init__(self, players=None):
         self.deck = Deck()
-        self.players = players if players is not None else set()
+        self.players = set(players) if players is not None else set()
         self.fold = set()
         self.dealer_index = -1
         self.next_index = 0

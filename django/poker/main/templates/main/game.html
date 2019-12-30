@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}{% endblock %}
+
+{% block content %}  
+
+<div class="w3-cell w3-panel w3-center" style="width: 1024px; height: 768px;">
+    <div class="w3-display-container w3-green w3-round-xxlarge" style="width: 1024px; height: 550px;" >
+        <div class="w3-display-topleft" id="slot_2"></div>
+        <div class="w3-display-topright" id="slot_4"></div>
+        <div class="w3-display-bottomleft" id="slot_0"></div>
+        <div class="w3-display-bottomright" id="slot_6"></div>
+        <div class="w3-display-left" id="slot_1"></div>
+        <div class="w3-display-right" id="slot_5"></div>
+        <div class="w3-display-middle" id="table"></div>
+        <div class="w3-display-topmiddle" id="slot_3"></div>
+        <div class="w3-display-bottommiddle" id="me"></div>
+    </div>
+    <div class="w3-panel w3-row" id="buttons" style="pointer-events:none;">
+        <div id="fold_button" onclick="fold();" class="w3-col l3 w3-button w3-blue w3-padding">Fold</div>
+        <div id="check_button" onclick="check();" class="w3-col l3 w3-button w3-blue w3-padding">Check</div>
+        <div id="call_button" onclick="call();" class="w3-col l3 w3-button w3-blue w3-padding">Call</div>                
+        <div id="raise_button" onclick="showRaiseInput();" class="w3-col l3 w3-button w3-blue w3-padding">Raise</div>                
+    </div>
+    <div id="raise_div" style="display: none;">
+        <input type="hidden" id="raise_min" />
+        <input id="raise_input" class="w3-input w3-small w3-right" type="text" placeholder="Bet and press Enter" onkeypress="raise(event);" style="width: 200px;" />
+    </div>    
+    <div id="message" class="w3-panel"></div>
+</div>
+<div class="w3-cell" id="pause_time"></div>
+
+<script>
+    window.onload = function() {
+        message = document.getElementById('message');
+        connect('{{myuser.user.username}}', '{{myuser.money}}');
+    };
+
+    window.onunload = window.onbeforeunload = function() { disconnect(); }
+</script>
+
+{% endblock %}

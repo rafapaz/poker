@@ -1,13 +1,15 @@
+from django.utils import timezone
 from django.shortcuts import render
 from django.http import HttpResponse
 from django.contrib import messages
 from django.db import transaction
 from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from .models import MyUser
 
 
-def index(request):    
+def index(request):
     return render(request, 'main/index.html')
 
 @transaction.atomic
@@ -44,9 +46,16 @@ def signin(request):
         try:
             myuser = MyUser.objects.get(email=request.POST['email'])
             user = authenticate(request, username=myuser.user.username, password=request.POST['password'])
-            login(request, user)            
+            login(request, user)
+
+            if myuser.money == 0:
+                diff = timezone.now() - user.last_login                
+                if diff.days >= 1:
+                    myuser.money = 30000
+                    myuser.save()
+
         except Exception as error:
-            messages.add_message(request, messages.ERROR, 'Invalid email or password!')
+            messages.add_message(request, messages.ERROR, 'Invalid email or password! ' + str(error))
             context = {'show_signin': True}
 
     return render(request, 'main/index.html', context)
@@ -57,4 +66,12 @@ def signout(request):
 
 def contact(request):
     return render(request, 'main/index.html')
+
+@login_required
+def play(request):
+    myuser = MyUser.objects.get(user=request.user)
+    if myuser.money == 0:
+        return render(request, 'main/index.html', {'show_cannotplay': True})
+
+    return render(request, 'main/game.html')
 

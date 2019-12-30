@@ -7,6 +7,7 @@
 <link rel="stylesheet" href="{% static 'w3.css' %}">
 <link rel="stylesheet" href="{% static 'w3-theme-black.css' %}">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+<script type="text/javascript" src="{% static 'poker_client.js' %}"></script>
 <body id="myPage">
 
 <!-- Sidebar on click -->
@@ -25,16 +26,18 @@
 <div class="w3-top">
  <div class="w3-bar w3-theme-d2 w3-left-align">
   <a class="w3-bar-item w3-button w3-hide-medium w3-hide-large w3-right w3-hover-white w3-theme-d2" href="javascript:void(0);" onclick="openNav()"><i class="fa fa-bars"></i></a>
-  <a href="#" class="w3-bar-item w3-button w3-teal"><i class="fa fa-home w3-margin-right"></i>Poker Lite</a>
-  <a href="#help" class="w3-bar-item w3-button w3-hide-small w3-hover-white">Help</a>  
-  <a href="#contact" class="w3-bar-item w3-button w3-hide-small w3-hover-white">Contact</a>
-    <div class="w3-dropdown-hover w3-hide-small">
+  <a href="/" class="w3-bar-item w3-button w3-teal"><i class="fa fa-home w3-margin-right"></i>Poker Lite</a>
+  <a href="/#help" class="w3-bar-item w3-button w3-hide-small w3-hover-white">Help</a>  
+  <a href="/#contact" class="w3-bar-item w3-button w3-hide-small w3-hover-white">Contact</a>
+  <!--
+  <div class="w3-dropdown-hover w3-hide-small">
     <button class="w3-button" title="Notifications">Idioms <i class="fa fa-caret-down"></i></button>     
     <div class="w3-dropdown-content w3-card-4 w3-bar-block">
       <a href="#" class="w3-bar-item w3-button">Português</a>
       <a href="#" class="w3-bar-item w3-button">English</a>      
     </div>
   </div>
+  -->
   {% if user.is_authenticated %}    
     <a href="{% url 'main_signout' %}" class="w3-bar-item w3-button w3-hide-small w3-right w3-teal" title="signout">Sign Out</a>
     <div class="w3-bar-item w3-hide-small w3-right"><i class="fa fa-user" style="font-size:16px;"></i>&nbsp;{{ user.first_name }}&nbsp;&nbsp;&nbsp;&nbsp;$ {{ myuser.money }}</div>
@@ -46,20 +49,18 @@
 
   <!-- Navbar on small screens -->
   <div id="navDemo" class="w3-bar-block w3-theme-d2 w3-hide w3-hide-large w3-hide-medium">
-    <a href="#help" class="w3-bar-item w3-button">Help</a>    
-    <a href="#contact" class="w3-bar-item w3-button">Contact</a>
-    <a href="#" class="w3-bar-item w3-button" onclick="document.getElementById('signin').style.display='block'">Sign In</a>
-    <a href="#" class="w3-bar-item w3-button" onclick="document.getElementById('signup').style.display='block'">Sign Up</a>
+    <a href="/#help" class="w3-bar-item w3-button">Help</a>    
+    <a href="/#contact" class="w3-bar-item w3-button">Contact</a>
+    {% if user.is_authenticated %}          
+      <div class="w3-bar-item w3-right w3-button"><i class="fa fa-user" style="font-size:16px;"></i>&nbsp;{{ user.first_name }}&nbsp;&nbsp;&nbsp;&nbsp;$ {{ myuser.money }}</div>
+      <a href="{% url 'main_signout' %}" class="w3-bar-item w3-button w3-right w3-teal" title="signout">Sign Out</a>
+    {% else %}
+      <a href="#" class="w3-bar-item w3-button" onclick="document.getElementById('signin').style.display='block'">Sign In</a>
+      <a href="#" class="w3-bar-item w3-button" onclick="document.getElementById('signup').style.display='block'">Sign Up</a>
+    {% endif %}
   </div>
 </div>
 
-<!-- Image Header -->
-<div class="w3-display-container w3-animate-opacity">
-  <img src="{% static 'background2-ok.png' %}" alt="boat" style="width:100%;">
-  <div class="w3-container w3-display-bottomleft w3-margin-bottom">  
-    <button class="w3-button w3-xlarge w3-theme w3-hover-teal">POKER LITE</button>
-  </div>  
-</div>
 
 <!-- Modal Sign Up -->
 <div id="signup" class="w3-modal">
@@ -400,6 +401,29 @@
   </div>
 </div>
 
+
+<!-- Modal Cannot play -->
+<div id="cannotplay" class="w3-modal">
+  <div class="w3-modal-content w3-card-4 w3-animate-top">
+    <header class="w3-container w3-teal w3-display-container"> 
+      <span onclick="document.getElementById('cannotplay').style.display='none'" class="w3-button w3-teal w3-display-topright"><i class="fa fa-remove"></i></span>
+      <h3>Sorry!</h3>      
+    </header>
+    <div class="w3-container w3-panel">      
+      <div class="w3-row">
+        <div class="w3-col l3">&nbsp;</div>
+        <div class="w3-col l6 w3-large w3-center">
+          Unfortunately, you have already lost all your money today! Come back tomorrow and get 30,000 chips for free!
+        </div>
+        <div class="w3-col l3">&nbsp;</div>
+      </div>
+    </div>    <footer class="w3-container w3-teal">
+      <p></p>
+    </footer>
+  </div>
+</div>
+
+
 {% block content %}{% endblock %}
 
 <!-- Footer -->
@@ -421,6 +445,10 @@
 
 {% if show_signin %}
   document.getElementById("signin").style.display = "block";
+{% endif %}
+
+{% if show_cannotplay %}
+  document.getElementById("cannotplay").style.display = "block";
 {% endif %}
 
 // Script for side navigation

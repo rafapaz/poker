@@ -3,6 +3,7 @@ var websocket;
 var my_cards = '';
 var slots = [];
 var dealer = '';
+var username = '';
 
 // Aux functions
 
@@ -20,16 +21,6 @@ function rotate_left(list, qtd)
 
 ////////////////
 
-window.onload = function() {
-
-    button_connect = '<div class="w3-button w3-orange" id="connect_button" onclick="connect();">Connect</div>';
-    button_disconnect = '<div class="w3-button w3-red" id="connect_button" onclick="disconnect();">Disconnect</div>';
-    document.getElementById('connect').innerHTML = button_connect;
-
-    message = document.getElementById('message');
-
-};
-
 function refreshUsers(data)
 {
     for (var i = 0; i < 7; i++)
@@ -42,7 +33,7 @@ function refreshUsers(data)
     var name = '';
     for (i in data)
     {
-        if (data[i]['name'] == document.getElementById('name').value)
+        if (data[i]['name'] == username)
         {
             if (dealer == data[i]['name'])
                 name = data[i]['name'] + ' D';
@@ -78,7 +69,7 @@ function saveMyCards(data)
     my_cards = '';
     for (i in data)
     {
-        my_cards += '<img src="img/' + data[i] + '.png" />';
+        my_cards += '<img src="/static/img/' + data[i] + '.png" />';
     }
 }
 
@@ -95,7 +86,7 @@ function showTable(data)
     var cards = '';
     for (i in data.cards)
     {
-        cards += '<img src="img/' + data.cards[i] + '.png" />';
+        cards += '<img src="/static/img/' + data.cards[i] + '.png" />';
     }
     table.innerHTML = cards + '<br>' + data.money;
 }
@@ -104,14 +95,14 @@ function showAllCards(data)
 {    
     for (i in data)
     {
-        if (data[i]['name'] == document.getElementById('name').value)
+        if (data[i]['name'] == username)
             continue;
         
         slot = document.getElementById('slot_' + slots[data[i]['name']])
         imgs = '';
         for (j in data[i]['cards'])
         {
-            imgs += '<img src="img/' + data[i]['cards'][j] + '.png" />';            
+            imgs += '<img src="/static/img/' + data[i]['cards'][j] + '.png" />';            
         }
 
         slot.innerHTML += imgs; 
@@ -120,7 +111,7 @@ function showAllCards(data)
 
 function showTurn(data)
 {
-    if (data.name == document.getElementById('name').value)    
+    if (data.name == username)    
         player = document.getElementById('me');    
     else    
         player = document.getElementById('slot_' + slots[data.name])
@@ -234,17 +225,15 @@ function showPauseTime(data)
     }
 }
 
-function connect()
+function connect(name, money)
 {
     websocket = new WebSocket("ws://127.0.0.1:6789/");
 
     websocket.onopen = function ()
-    {        
+    {
         console.log('Connected!');
-        websocket.send(JSON.stringify({name: document.getElementById('name').value, money: document.getElementById('money').value}));
-        document.getElementById('connect').innerHTML = button_disconnect;
-        document.getElementById('name').disabled = true;
-        document.getElementById('money').disabled = true;
+        websocket.send(JSON.stringify({name: name, money: money}));
+        username = name;        
         clean_game();
         websocket.send(JSON.stringify({action: 'idle'}));
     };

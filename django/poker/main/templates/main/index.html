@@ -2,7 +2,20 @@
 {% load static %}
 {% block title %}{% endblock %}
 
-{% block content %}    
+{% block content %}   
+<!-- Image Header -->
+<div class="w3-display-container w3-animate-opacity">
+  <img src="{% static 'background2-ok.png' %}" alt="boat" style="width:100%;">
+  <div class="w3-container w3-display-bottomleft w3-margin-bottom">  
+    <button class="w3-button w3-xlarge w3-theme w3-hover-teal">POKER LITE</button>    
+  </div>
+  {% if user.is_authenticated %}
+    <div class="w3-container w3-display-middle w3-margin">  
+      <a href="/play" class="w3-button w3-xxlarge w3-teal w3-round-xxlarge" style="border:16px solid white"><i class="fa fa-play"></i><br>PLAY</a>
+    </div>
+  {% endif %}
+</div>
+
 <!-- Info -->
 <div class="w3-container w3-padding-64 w3-center w3-row" id="info">
     <div class="w3-col l2">&nbsp;</div>

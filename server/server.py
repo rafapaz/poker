@@ -18,7 +18,8 @@ MAX_USERS = 8
 
 
 def log(user, msg):
-    logger.info(msg, extra={'room': PLAYER_ROOM[user.player.name]})
+    if user.player.name in PLAYER_ROOM:
+        logger.info(msg, extra={'room': PLAYER_ROOM[user.player.name]})
 
 
 def open_room():    
@@ -75,8 +76,8 @@ async def send(user, dest=None, type_msg='msg', msg=None):
 
 async def register(websocket):
     msg = await websocket.recv()
-    data = json.loads(msg)
-    user = User(data['name'], websocket)
+    data = json.loads(msg)    
+    user = User(data['name'], int(data['money']), websocket)
 
     cod_room = empty_room()
     if cod_room is None:
@@ -84,18 +85,7 @@ async def register(websocket):
     
     ROOMS[cod_room].users.add(user)
     PLAYER_ROOM[data['name']] = cod_room
-    """
-    bot1 = User('BOT1', None, True)
-    USERS.add(bot1)
-    bot2 = User('BOT2', None, True)
-    USERS.add(bot2)
-    bot3 = User('BOT3', None, True)
-    USERS.add(bot3)
-    bot4 = User('BOT4', None, True)
-    USERS.add(bot4)
-    bot5 = User('BOT5', None, True)
-    USERS.add(bot5)
-    """
+    
     await send(user, None, 'msg', '{} connected!'.format(user.player.name))
     return user
     
