@@ -6,6 +6,7 @@ import websockets
 import time
 import datetime
 import logging
+import requests
 from room import Room
 from user import User
 
@@ -74,11 +75,24 @@ async def send(user, dest=None, type_msg='msg', msg=None):
         await notify_users(user, message)
     
 
+def token_ok(token):
+    msg = requests.get('http://127.0.0.1:8000/ack?token=' + token).text
+    if msg == 'OK':
+        return True
+    return False
+
+
+def update_money(name, money):
+    requests.get('http://127.0.0.1:8000/update_money/?name=' + name + '&money=' + str(money))
+
+
 async def register(websocket):
     msg = await websocket.recv()
     data = json.loads(msg)    
-    if 'token' not in data:
-        return None
+    
+    if not token_ok(data['token']):
+        return
+
     user = User(data['name'], int(data['money']), websocket)
 
     cod_room = empty_room()
@@ -246,6 +260,7 @@ async def raise_bet(user, value):
         return
     value_bet = user.player.bet(int(value))
     poker.get_money(user.player, value_bet)
+    update_money(user.player.name, user.player.money)
     await send(user, user, 'wait_play')
     await send(user, None, 'msg', user.player.name + ' RAISE to ' + str(value_bet))
     await do_cycle(user)
@@ -256,6 +271,7 @@ async def call(user):
     poker = room.poker
 
     poker.get_money(user.player, user.player.bet(poker.high_bet))
+    update_money(user.player.name, user.player.money)
     await send(user, user, 'wait_play')
     await send(user, None, 'msg', user.player.name + ' CALL')    
     await do_cycle(user)
@@ -266,6 +282,7 @@ async def show_winner(user):
     poker = room.poker
 
     win, score = poker.winner()
+    update_money(win.name, win.money)
     await send(user, None, 'msg', '{} win with {}'.format(win.name, score))
 
 

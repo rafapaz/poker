@@ -48,11 +48,12 @@ def signin(request):
             myuser = MyUser.objects.get(email=request.POST['email'])
             user = authenticate(request, username=myuser.user.username, password=request.POST['password'])
             login(request, user)
-            myuser.token = str(hash(datetime.datetime.now()))
+            myuser.token = str(hash(datetime.datetime.now()))            
             myuser.save()
 
             if myuser.money == 0:
-                diff = timezone.now() - user.last_login                
+                diff = timezone.now() - myuser.time_zero
+                print(diff)
                 if diff.days >= 1:
                     myuser.money = 30000
                     myuser.save()
@@ -79,9 +80,23 @@ def play(request):
     return render(request, 'main/game.html', {'token': myuser.token})
 
 
-def ack(request):
+def ack(request):    
     try:
         myuser = MyUser.objects.get(token=request.GET['token'])
         return HttpResponse('OK')
     except Exception:
         return HttpResponse('ERROR')
+
+
+def update_money(request):
+    if '127.0.0.1' in request.META['HTTP_HOST']:
+        username = request.GET['name']
+        money = request.GET['money']
+        user = User.objects.get(username=username)
+        myuser = MyUser.objects.get(user=user)
+        myuser.money = money
+        if money == 0:
+            myuser.time_zero = datetime.datetime.now()
+        myuser.save()
+        return HttpResponse('OK')
+    return HttpResponse('ERROR')
