@@ -11,6 +11,14 @@ from .models import MyUser
 
 
 def index(request):
+    if request.user.is_authenticated:
+        myuser = MyUser.objects.get(user=request.user)
+        if myuser.money == 0:
+            diff = timezone.now() - myuser.time_zero
+            if diff.days >= 1:
+                myuser.money = 30000
+                myuser.save()
+
     return render(request, 'main/index.html')
 
 @transaction.atomic
@@ -52,8 +60,7 @@ def signin(request):
             myuser.save()
 
             if myuser.money == 0:
-                diff = timezone.now() - myuser.time_zero
-                print(diff)
+                diff = timezone.now() - myuser.time_zero                
                 if diff.days >= 1:
                     myuser.money = 30000
                     myuser.save()
